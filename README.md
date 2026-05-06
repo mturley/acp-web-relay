@@ -1,35 +1,85 @@
-# Zed Remote Android
+# acp-mobile-relay
 
-An Android app that acts as a client for [Zed](https://zed.dev/)'s remote development server, focused on exposing AI agent thread views from a mobile device.
+Monitor and control AI agent sessions from your phone.
 
-## Goal
+A relay proxy that sits between your code editor and any [ACP](https://agentclientprotocol.com/)-compatible agent (Claude Code, Gemini CLI, Codex, etc.), exposing a mobile-friendly web interface over the network.
 
-Zed supports [remote development](https://zed.dev/docs/remote-development) where a local Zed editor connects to a remote server over SSH. The remote server (installed at `~/.zed_server`) handles source code, language servers, tasks, and terminal sessions, while the local client handles UI, syntax highlighting, and unsaved change persistence.
+## How It Works
 
-Currently, the only client for Zed's remote development server is the Zed desktop editor itself. This project aims to reverse-engineer the protocol between the Zed client and its remote server and build an alternative Android client.
+```
+┌──────────┐  stdio  ┌───────────────┐  stdio  ┌──────────────────┐
+│  Editor  │◄───────►│ acp-mobile-   │◄───────►│   ACP Agent      │
+│ (Zed,    │         │    relay      │         │ (Claude Code,    │
+│  IDEA,   │         │               │         │  Gemini CLI,     │
+│  etc.)   │         │  ┌─────────┐  │         │  Codex, etc.)    │
+└──────────┘         │  │ Mobile  │  │         └──────────────────┘
+                     │  │ Web UI  │  │
+                     │  └────┬────┘  │
+                     └───────┼───────┘
+                             │
+                        WebSocket
+                             │
+                     ┌───────┴───────┐
+                     │    Phone      │
+                     │   Browser     │
+                     └───────────────┘
+```
 
-The initial focus is on **agent thread views** rather than a full file editor. The goal is to monitor, interact with, and manage AI agent threads running in a remote Zed instance from an Android device -- making it possible to supervise and steer agent work on the go without needing the full desktop editor.
+Your editor launches `acp-mobile-relay` as a subprocess instead of the agent directly. The relay:
 
-## Architecture
+1. **Proxies all ACP messages** transparently between editor and agent -- neither knows the relay is there
+2. **Serves a mobile web UI** on a local port with a chat interface for viewing and interacting with agent sessions
+3. **Broadcasts all updates** to both the editor and any connected mobile clients in real time
+4. **Accepts prompts from mobile** and injects them into the agent session -- they appear in both the editor and the phone
 
-Zed's remote development architecture:
+## Use Case
 
-- **Transport**: SSH with ControlMaster connection multiplexing
-- **Remote server**: Runs in "proxy mode" -- starts a daemon if not running, reconnects if it is
-- **Server binary**: Located at `~/.zed_server` on the remote host
-- **Client responsibilities**: UI rendering, Tree-sitter parsing, syntax highlighting, local persistence of unsaved changes
-- **Server responsibilities**: Source code access, language servers, task execution, terminal sessions
+You're working with an AI coding agent in your editor. You step away from your desk. On your phone, you open the relay's web UI and see all your active sessions grouped by project and branch. You can:
 
-This project will need to:
+- Watch the agent work in real time (streaming text, tool calls, file edits)
+- Send follow-up prompts from your phone
+- Cancel a running operation
+- Check on multiple sessions across different projects
 
-1. Understand the wire protocol between the Zed client and `~/.zed_server`
-2. Implement an SSH transport layer on Android
-3. Build a mobile UI focused on agent thread interaction (file editing may come later)
-4. Handle reconnection and local persistence of unsaved state
+Everything stays in sync -- the editor sees what you do on the phone and vice versa.
+
+## Setup
+
+Configure the relay as a custom agent in your editor. For example, in Zed's `settings.json`:
+
+```json
+{
+  "agent_servers": {
+    "Claude (Mobile)": {
+      "type": "custom",
+      "command": "npx",
+      "args": ["acp-mobile-relay", "--port", "8765", "--agent", "npx @zed-industries/claude-code-acp"]
+    }
+  }
+}
+```
+
+Then open `http://your-machine:8765` on your phone.
+
+## Features
+
+- **Editor-agnostic**: Works with any ACP client (Zed, JetBrains, Neovim, VS Code)
+- **Agent-agnostic**: Works with any ACP agent (Claude Code, Gemini CLI, Codex, OpenCode, etc.)
+- **Session grouping**: Sessions are grouped by git repository and branch, like in your editor's agent sidebar
+- **Real-time mirroring**: Both the editor and the phone see the same session state
+- **Mobile-first web UI**: Optimized for phone screens with markdown rendering, tool call visualization, and streaming support
+- **Prompt from anywhere**: Send prompts from the phone; they appear in the editor too
+- **No account required**: Everything runs locally on your machine, no cloud service involved
+
+## Network Access
+
+**Same WiFi** (simplest): The relay binds to your local network and your phone connects directly.
+
+**Remote access**: Use [Tailscale](https://tailscale.com/), a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or an SSH tunnel to access the relay from anywhere.
 
 ## Status
 
-Early exploration -- currently researching the Zed remote development protocol.
+Early development -- researching the ACP protocol and designing the relay architecture. See the `research/` directory for technical notes.
 
 ## License
 
