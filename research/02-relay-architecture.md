@@ -268,6 +268,19 @@ Options:
    Should it also forward to mobile? Answering from either side would need
    careful coordination.
 
+6. **Mobile-initiated sessions**: Could the phone create a new session (pick a
+   directory, start a fresh agent conversation)? The relay could spawn a new
+   agent process, but Zed wouldn't know about it — ACP has no mechanism for
+   the agent to notify the client that a new session appeared. The client
+   drives session creation, not the server. Options considered:
+   - Phone-only sessions (relay spawns standalone agent, works on phone but
+     invisible to Zed — breaks the mirroring model)
+   - Notify Zed somehow (no ACP support for server-initiated session events)
+   - Skip for v1 (primary use case is monitoring/interacting with sessions
+     Zed already started; session creation is a desk activity)
+   Recommendation: defer to v1+. Revisit if ACP adds server-initiated session
+   notifications or if a workaround emerges.
+
 Sources:
 - [ACP UI — GitHub](https://github.com/formulahendry/acp-ui)
 - [ACP UI — Web App](https://acp-ui.github.io/)
