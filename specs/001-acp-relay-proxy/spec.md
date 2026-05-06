@@ -83,6 +83,23 @@ The developer sees the agent doing something unexpected or taking too long. From
 
 ---
 
+### User Story 5 - Daemon Mode for Multi-Editor Aggregation (Priority: P5)
+
+The developer wants their relay running persistently, independent of any single editor. They start the relay daemon in a terminal before opening their editor. When they open Zed (or multiple editors), each editor's agent sessions automatically appear in the relay's mobile UI. If they close one editor, the other editors' sessions remain visible. The relay outlives any individual editor session.
+
+**Why this priority**: Subprocess mode (where the editor spawns the relay) is sufficient for single-editor use. Daemon mode solves the multi-editor problem (Zed + JetBrains, multiple Zed windows) and avoids port conflicts from multiple relay instances. It also gives the user a clear place to see the relay URL (the terminal where they started it). However, it requires a registration mechanism for editor subprocesses to connect to the running daemon, adding architectural complexity.
+
+**Independent Test**: Start the relay daemon in a terminal. Open two different editors configured to use the relay. Create agent sessions in each. Open the mobile UI and verify sessions from both editors appear in the session picker. Close one editor and verify the other editor's sessions remain.
+
+**Acceptance Scenarios**:
+
+1. **Given** the relay daemon is running, **When** an editor launches an agent subprocess configured to use the relay, **Then** the subprocess detects the running daemon and registers its stdio pipe with it instead of starting a new server
+2. **Given** multiple editors have registered with the daemon, **When** the user opens the mobile UI, **Then** they see sessions from all connected editors in the session picker
+3. **Given** an editor closes while the daemon is running, **When** the user views the mobile UI, **Then** that editor's sessions are removed but sessions from other editors remain
+4. **Given** no daemon is running, **When** an editor launches the relay as a subprocess, **Then** the relay starts in subprocess mode as normal (backward compatible)
+
+---
+
 ### Edge Cases
 
 - What happens when the phone connects mid-session? The relay replays the in-memory message buffer so the phone receives the full conversation history accumulated since the relay started.
@@ -92,6 +109,8 @@ The developer sees the agent doing something unexpected or taking too long. From
 - What happens when the phone and editor send prompts simultaneously? The relay MUST prevent concurrent prompts to the same session (the agent supports only one prompt at a time).
 - What happens if the user types a prompt before the synthetic URL prompt finishes? The relay queues it and sends it after the synthetic prompt completes.
 - What happens when the relay restarts? The relay re-discovers sessions via `session/list` from the agent. In-memory message history from before the restart is lost; the phone sees sessions but not prior conversation content until the agent provides it.
+- What happens when two editors try to start the relay on the same port without daemon mode? The second subprocess MUST detect the port conflict and either register with the existing relay (if it supports it) or fail with a clear error message suggesting daemon mode.
+- What happens when the daemon is stopped while editors are still connected? The editor subprocesses MUST continue functioning as direct agent proxies (degraded mode — mobile UI unavailable but editor↔agent communication uninterrupted).
 
 ## Requirements *(mandatory)*
 
@@ -113,6 +132,10 @@ The developer sees the agent doing something unexpected or taking too long. From
 - **FR-014**: The relay MUST print the local network URL on startup so users can find it easily
 - **FR-015**: On each new session, the relay MUST send a synthetic prompt to the agent that includes the relay's mobile URL, phrased as the user's own statement (e.g., "This session is using acp-mobile-relay and I can access it from another device at http://192.168.1.x:8765. Repeat that URL to me."), so the agent confirms the URL in its first response
 - **FR-016**: The relay MUST queue the user's real first prompt until the synthetic URL prompt completes (receives `stopReason: "end_turn"`)
+- **FR-017**: The relay MUST support a daemon mode (`--daemon`) where it starts as a persistent server independent of any editor
+- **FR-018**: When launched as an editor subprocess, the relay MUST detect if a daemon is already running on the configured port and register its stdio pipe with the daemon instead of starting a new server
+- **FR-019**: When running in daemon mode, the relay MUST aggregate sessions from all connected editor subprocesses into a single mobile UI
+- **FR-020**: When an editor disconnects from the daemon, the relay MUST remove that editor's sessions from the mobile UI while keeping other editors' sessions available
 
 ### Key Entities
 
@@ -136,7 +159,8 @@ The developer sees the agent doing something unexpected or taking too long. From
 
 - The user has a code editor that supports configuring custom ACP agents (Zed, JetBrains, VS Code, Neovim, etc.)
 - The user's phone and development machine are on the same network (or connected via VPN/tunnel for remote access)
-- The editor spawns one relay subprocess per agent type; the relay manages all sessions multiplexed by that agent process
+- In subprocess mode, the editor spawns one relay subprocess per agent type; the relay manages all sessions multiplexed by that agent process
+- In daemon mode, the relay runs independently and multiple editor subprocesses register with it; the daemon aggregates all sessions
 - The downstream ACP agent (Claude Code, Gemini CLI, etc.) handles session persistence — the relay maintains only an in-memory buffer for mid-session replay, not long-term storage
 - The mobile chat interface is provided by a bundled build of ACP UI served from the relay's HTTP server
 - The session picker (landing page) is the only custom UI the relay builds; the chat interface is ACP UI
