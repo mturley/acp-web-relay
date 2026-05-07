@@ -9,7 +9,6 @@ import {
   ErrorCodes,
 } from "./json-rpc.js";
 import { SessionManager } from "./session-manager.js";
-import { PromptQueue } from "./prompt-queue.js";
 import { extractGitMeta } from "./git-meta.js";
 import { createHttpServer, type HttpServerHandle } from "./http-server.js";
 import { createWsServer, type WsServerHandle } from "./ws-server.js";
@@ -22,7 +21,6 @@ export interface RelayOptions {
 
 export interface RelayHandle {
   sessionManager: SessionManager;
-  promptQueue: PromptQueue;
   httpHandle: HttpServerHandle;
   wsHandle: WsServerHandle;
   daemonServer: DaemonServer;
@@ -31,7 +29,6 @@ export interface RelayHandle {
 
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
-  const promptQueue = new PromptQueue();
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -48,7 +45,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (!parsed) return;
 
     const sessionId = extractSessionId(parsed);
-
     const method = extractMethod(parsed);
     const hadSession = sessionId ? !!sessionManager.getSession(sessionId) : false;
 
@@ -85,15 +81,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     }
 
     wsHandle.broadcast(line + "\n");
-
-    if (direction === "agent→editor") {
-      if (sessionId && method === "session/update") {
-        const params = (parsed as any).params;
-        if (params?.stopReason === "end_turn" || params?.type === "agent_message_end") {
-          promptQueue.markIdle(sessionId);
-        }
-      }
-    }
   };
 
   const wsHandle = createWsServer({
@@ -104,13 +91,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       if (!session) {
         wsHandle.broadcast(
           createErrorResponse(requestId as number, ErrorCodes.SESSION_NOT_FOUND, "Session not found"),
-        );
-        return;
-      }
-
-      if (!promptQueue.canPrompt(sessionId)) {
-        wsHandle.broadcast(
-          createErrorResponse(requestId as number, ErrorCodes.SESSION_BUSY, "Session is currently processing a prompt"),
         );
         return;
       }
@@ -133,7 +113,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         parseMessage(promptReq.trim())!,
         pipe.id,
       );
-      promptQueue.markBusy(sessionId);
     },
     onCancel: (sessionId) => {
       const pipe = findPipeForSession(sessionId);
@@ -151,7 +130,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         parseMessage(cancelNotif.trim())!,
         pipe.id,
       );
-      promptQueue.markIdle(sessionId);
     },
     onClose: (sessionId) => {
       log(`Web archive → session ${sessionId}`);
@@ -188,5 +166,5 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   process.on("SIGINT", () => shutdown().then(() => process.exit(0)));
   process.on("SIGTERM", () => shutdown().then(() => process.exit(0)));
 
-  return { sessionManager, promptQueue, httpHandle, wsHandle, daemonServer, shutdown };
+  return { sessionManager, httpHandle, wsHandle, daemonServer, shutdown };
 }

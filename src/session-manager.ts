@@ -12,6 +12,7 @@ export class SessionManager {
   private sessions = new Map<string, RelaySession>();
   private messageCounter = new Map<string, number>();
   private pendingNewRequests = new Map<number | string, string>();
+  private pendingPromptRequests = new Map<number | string, string>();
 
   createSession(
     sessionId: string,
@@ -92,12 +93,30 @@ export class SessionManager {
       }
     }
 
-    if (isResponse(parsed) && sessionId) {
+    if (method === "session/prompt" && isRequest(parsed)) {
+      const req = parsed as { id?: number | string; params?: Record<string, unknown> };
+      if (req.id !== undefined && sessionId) {
+        this.pendingPromptRequests.set(req.id, sessionId);
+      }
+    }
+
+    if (isResponse(parsed)) {
       const resp = parsed as { id: number | string };
-      const cwd = this.pendingNewRequests.get(resp.id) ?? "";
-      if (this.pendingNewRequests.has(resp.id)) {
+
+      if (this.pendingNewRequests.has(resp.id) && sessionId) {
+        const cwd = this.pendingNewRequests.get(resp.id) ?? "";
         this.pendingNewRequests.delete(resp.id);
         this.createSession(sessionId, cwd, sourceId);
+      }
+
+      const promptSessionId = this.pendingPromptRequests.get(resp.id);
+      if (promptSessionId) {
+        this.pendingPromptRequests.delete(resp.id);
+        const session = this.sessions.get(promptSessionId);
+        if (session) {
+          session.status = "idle";
+          session.promptPending = false;
+        }
       }
     }
 
@@ -126,12 +145,6 @@ export class SessionManager {
           }
           session.lastPrompt = promptText.length > 60 ? promptText.slice(0, 60) + "…" : promptText;
         }
-      }
-    } else if (method === "session/update" && isRequest(parsed)) {
-      const params = parsed.params as Record<string, unknown> | undefined;
-      if (params?.stopReason === "end_turn" || params?.type === "agent_message_end") {
-        session.status = "idle";
-        session.promptPending = false;
       }
     } else if (method === "session/cancel") {
       session.status = "idle";

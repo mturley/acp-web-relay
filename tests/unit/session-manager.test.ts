@@ -85,13 +85,13 @@ describe("SessionManager", () => {
       expect(manager.getSession("sess_abc123")!.promptPending).toBe(true);
     });
 
-    it("transitions to idle on end_turn", () => {
+    it("transitions to idle on prompt response", () => {
       manager.createSession("sess_abc123", "/project", "pipe_1");
       const prompt = parseMessage(fixtures.sessionPromptRequest)!;
       manager.processMessage(fixtures.sessionPromptRequest, "editor→agent", prompt);
 
-      const endTurn = parseMessage(fixtures.sessionUpdateEndTurn)!;
-      manager.processMessage(fixtures.sessionUpdateEndTurn, "agent→editor", endTurn);
+      const response = parseMessage(fixtures.sessionPromptResponse)!;
+      manager.processMessage(fixtures.sessionPromptResponse, "agent→editor", response);
 
       expect(manager.getSession("sess_abc123")!.status).toBe("idle");
       expect(manager.getSession("sess_abc123")!.promptPending).toBe(false);

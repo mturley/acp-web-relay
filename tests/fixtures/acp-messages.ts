@@ -67,6 +67,15 @@ export const sessionUpdateEndTurn = JSON.stringify({
   },
 });
 
+export const sessionPromptResponse = JSON.stringify({
+  jsonrpc: "2.0",
+  id: 3,
+  result: {
+    sessionId: "sess_abc123",
+    stopReason: "end_turn",
+  },
+});
+
 export const sessionCancelNotification = JSON.stringify({
   jsonrpc: "2.0",
   method: "session/cancel",

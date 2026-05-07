@@ -59,6 +59,10 @@
     }
 
     if (msg.method === "session/update") {
+      if (suppressNextRefresh) {
+        suppressNextRefresh = false;
+        return;
+      }
       send("session/list", {});
       return;
     }
@@ -158,9 +162,10 @@
     render();
   }
 
+  let suppressNextRefresh = false;
+
   function archiveSession(sessionId) {
     if (!confirm("Archive this session? It will be hidden from the active list.")) return;
-    send("session/close", { sessionId });
 
     const s = sessions.find((s) => s.sessionId === sessionId);
     if (s) s.archived = true;
@@ -176,16 +181,18 @@
 
     render();
     updateBadge();
+    suppressNextRefresh = true;
+    send("session/close", { sessionId });
   }
 
   function restoreSession(sessionId) {
-    send("session/restore", { sessionId });
-
     const s = sessions.find((s) => s.sessionId === sessionId);
     if (s) s.archived = false;
 
     render();
     updateBadge();
+    suppressNextRefresh = true;
+    send("session/restore", { sessionId });
   }
 
   function renderSessionCard(s) {
