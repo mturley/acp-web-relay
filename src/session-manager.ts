@@ -31,6 +31,7 @@ export class SessionManager {
       updatedAt: now,
       promptPending: false,
       lastPrompt: null,
+      archived: false,
       sourceId,
     };
     this.sessions.set(sessionId, session);
@@ -150,6 +151,13 @@ export class SessionManager {
     return null;
   }
 
+  archiveSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.archived = true;
+    }
+  }
+
   setGitMeta(sessionId: string, gitMeta: GitMeta): void {
     const session = this.sessions.get(sessionId);
     if (session) {
@@ -163,6 +171,7 @@ export class SessionManager {
     title: string | null;
     lastPrompt: string | null;
     updatedAt: string;
+    archived: boolean;
     _meta: { relay: { status: SessionStatus; git: GitMeta | null } };
   }> {
     return this.getAllSessions().map((s) => ({
@@ -171,6 +180,7 @@ export class SessionManager {
       title: s.title,
       lastPrompt: s.lastPrompt,
       updatedAt: s.updatedAt,
+      archived: s.archived,
       _meta: {
         relay: {
           status: s.status,

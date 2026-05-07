@@ -57,6 +57,11 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+      wsHandle.broadcast(createNotification("session/update", { type: "session_created" }));
+    }
+
+    if (direction === "editor→agent" && method === "session/prompt") {
+      wsHandle.broadcast(createNotification("session/update", { type: "session_prompt" }));
     }
 
     if (isResponse(parsed) && sessionId) {
@@ -68,9 +73,9 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       }
     }
 
-    if (direction === "agent→editor") {
-      wsHandle.broadcast(line + "\n");
+    wsHandle.broadcast(line + "\n");
 
+    if (direction === "agent→editor") {
       if (sessionId && method === "session/update") {
         const params = (parsed as any).params;
         if (params?.stopReason === "end_turn" || params?.type === "agent_message_end") {
@@ -111,6 +116,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         pipe.agentProc.stdin.write(promptReq);
       }
       pipe.socket.write(promptReq);
+      wsHandle.broadcast(promptReq);
       sessionManager.processMessage(
         promptReq.trim(),
         "web→agent",
@@ -138,14 +144,9 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       promptQueue.markIdle(sessionId);
     },
     onClose: (sessionId) => {
-      const pipe = findPipeForSession(sessionId);
-      if (!pipe) return;
-
-      log(`[${pipe.id}] Web close → session ${sessionId}`);
-      if (pipe.agentProc && !pipe.agentProc.killed) {
-        pipe.agentProc.kill();
-      }
-      pipe.socket.end();
+      log(`Web archive → session ${sessionId}`);
+      sessionManager.archiveSession(sessionId);
+      wsHandle.broadcast(createNotification("session/update", { type: "session_archived" }));
     },
   });
 

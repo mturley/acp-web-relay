@@ -72,7 +72,7 @@
 
   function updateBadge() {
     const badge = document.getElementById("session-badge");
-    const count = sessions.length;
+    const count = sessions.filter((s) => !s.archived).length;
     if (count > 0 && !sidebarOpen) {
       badge.textContent = count;
       badge.style.display = "inline-block";
@@ -158,8 +158,8 @@
     render();
   }
 
-  function closeSession(sessionId) {
-    if (!confirm("Close this session? This will kill the agent process.")) return;
+  function archiveSession(sessionId) {
+    if (!confirm("Archive this session? It will be hidden from the active list.")) return;
     send("session/close", { sessionId });
 
     if (activeSessionId === sessionId) {
@@ -172,11 +172,42 @@
     }
   }
 
+  function renderSessionCard(s) {
+    const status = s._meta?.relay?.status || "idle";
+    const isActive = s.sessionId === activeSessionId;
+    const isArchived = s.archived;
+    const title = escapeHtml(s.title || s.sessionId);
+    const lastPrompt = s.lastPrompt && s.lastPrompt !== s.title ? escapeHtml(s.lastPrompt) : null;
+    const time = formatTime(s.updatedAt);
+    let html = `<div class="session-card${isActive ? " active" : ""}${isArchived ? " archived" : ""}" data-session="${escapeHtml(s.sessionId)}">`;
+    html += `<div class="session-status ${status}"></div>`;
+    html += `<div class="session-info">`;
+    html += `<div class="session-title">${title}</div>`;
+    if (lastPrompt) {
+      html += `<div class="session-last-prompt">${lastPrompt}</div>`;
+    }
+    html += `<div class="session-meta">${status} &middot; ${time}</div>`;
+    html += `</div>`;
+    if (!isArchived) {
+      html += `<div class="session-actions">`;
+      if (status === "working") {
+        html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" title="Cancel">&#x23F9;</button>`;
+      }
+      html += `<button class="archive-btn" data-archive="${escapeHtml(s.sessionId)}" title="Archive session">&#x1F4E6;</button>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
   function render() {
     const container = document.getElementById("sessions-container");
     const emptyState = document.getElementById("empty-state");
 
-    if (sessions.length === 0) {
+    const activeSessions = sessions.filter((s) => !s.archived);
+    const archivedSessions = sessions.filter((s) => s.archived);
+
+    if (activeSessions.length === 0 && archivedSessions.length === 0) {
       container.innerHTML = "";
       container.appendChild(emptyState);
       emptyState.style.display = "block";
@@ -184,36 +215,35 @@
     }
 
     emptyState.style.display = "none";
-    const groups = groupSessions(sessions);
     let html = "";
 
-    for (const [groupName, groupSessions] of Object.entries(groups)) {
-      html += `<div class="group">`;
-      html += `<div class="group-header">${escapeHtml(groupName)}</div>`;
-      for (const s of groupSessions) {
-        const status = s._meta?.relay?.status || "idle";
-        const isActive = s.sessionId === activeSessionId;
-        const title = escapeHtml(s.title || s.sessionId);
-        const lastPrompt = s.lastPrompt && s.lastPrompt !== s.title ? escapeHtml(s.lastPrompt) : null;
-        const time = formatTime(s.updatedAt);
-        html += `<div class="session-card${isActive ? " active" : ""}" data-session="${escapeHtml(s.sessionId)}">`;
-        html += `<div class="session-status ${status}"></div>`;
-        html += `<div class="session-info">`;
-        html += `<div class="session-title">${title}</div>`;
-        if (lastPrompt) {
-          html += `<div class="session-last-prompt">${lastPrompt}</div>`;
+    if (activeSessions.length > 0) {
+      const groups = groupSessions(activeSessions);
+      for (const [groupName, groupSessions] of Object.entries(groups)) {
+        html += `<div class="group">`;
+        html += `<div class="group-header">${escapeHtml(groupName)}</div>`;
+        for (const s of groupSessions) {
+          html += renderSessionCard(s);
         }
-        html += `<div class="session-meta">${status} &middot; ${time}</div>`;
-        html += `</div>`;
-        html += `<div class="session-actions">`;
-        if (status === "working") {
-          html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" title="Cancel">&#x23F9;</button>`;
-        }
-        html += `<button class="close-btn" data-close="${escapeHtml(s.sessionId)}" title="Close session">&#x1F5D1;</button>`;
-        html += `</div>`;
         html += `</div>`;
       }
-      html += `</div>`;
+    } else {
+      html += `<div class="empty-state"><p>No active sessions</p></div>`;
+    }
+
+    if (archivedSessions.length > 0) {
+      html += `<details class="archived-section">`;
+      html += `<summary class="archived-header">Archived (${archivedSessions.length})</summary>`;
+      const groups = groupSessions(archivedSessions);
+      for (const [groupName, groupSessions] of Object.entries(groups)) {
+        html += `<div class="group">`;
+        html += `<div class="group-header">${escapeHtml(groupName)}</div>`;
+        for (const s of groupSessions) {
+          html += renderSessionCard(s);
+        }
+        html += `</div>`;
+      }
+      html += `</details>`;
     }
 
     container.innerHTML = html;
@@ -234,11 +264,11 @@
       return;
     }
 
-    const closeBtn = e.target.closest(".close-btn");
-    if (closeBtn) {
+    const archiveBtn = e.target.closest(".archive-btn");
+    if (archiveBtn) {
       e.stopPropagation();
-      const sessionId = closeBtn.dataset.close;
-      if (sessionId) closeSession(sessionId);
+      const sessionId = archiveBtn.dataset.archive;
+      if (sessionId) archiveSession(sessionId);
       return;
     }
 
