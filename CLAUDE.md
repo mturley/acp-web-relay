@@ -12,12 +12,21 @@ A transparent ACP relay proxy with a web UI. See README.md for the overview.
 
 - **Do NOT build a custom agent/chat interface.** We use ACP UI (git submodule) for the chat interface. Building our own would be difficult to maintain. If ACP UI lacks a feature we need (like auto-loading a session by ID), contribute upstream or work around it — don't reimplement the chat UI.
 
+## ACP UI Fork
+
+The chat interface is a fork of ACP UI at `ui/acp-ui/` (submodule pointing to [mturley/acp-ui](https://github.com/mturley/acp-ui)). The fork adds URL parameter support for embedding in an iframe.
+
+**When modifying the fork:**
+- Update `ui/acp-ui/FORK_CHANGES.md` to document what changed and why
+- Commit and push changes in the submodule (`ui/acp-ui/`) before committing in the parent repo
+- Update the submodule ref in the parent repo after pushing
+
 ## Tech Stack
 
 - TypeScript / Node.js
 - npm distribution (`npx acp-web-relay`)
 - WebSocket server (`ws` library) for web clients
-- ACP UI (github.com/formulahendry/acp-ui) for the chat interface — we only build the session picker
+- ACP UI ([mturley/acp-ui](https://github.com/mturley/acp-ui) fork) for the chat interface — we only build the session picker
 
 ## External References
 
