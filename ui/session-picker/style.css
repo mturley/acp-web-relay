@@ -236,7 +236,7 @@ header h1 {
   flex-shrink: 0;
 }
 
-.cancel-btn, .archive-btn {
+.cancel-btn, .archive-btn, .restore-btn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -255,6 +255,11 @@ header h1 {
 .archive-btn:hover {
   border-color: var(--text-muted);
   color: var(--text);
+}
+
+.restore-btn:hover {
+  border-color: var(--idle);
+  color: var(--idle);
 }
 
 /* Archived section */

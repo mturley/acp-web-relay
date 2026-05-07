@@ -158,6 +158,13 @@ export class SessionManager {
     }
   }
 
+  unarchiveSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      session.archived = false;
+    }
+  }
+
   setGitMeta(sessionId: string, gitMeta: GitMeta): void {
     const session = this.sessions.get(sessionId);
     if (session) {

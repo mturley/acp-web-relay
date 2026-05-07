@@ -60,8 +60,19 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       wsHandle.broadcast(createNotification("session/update", { type: "session_created" }));
     }
 
-    if (direction === "editor→agent" && method === "session/prompt") {
-      wsHandle.broadcast(createNotification("session/update", { type: "session_prompt" }));
+    if (direction === "editor→agent" && method === "session/prompt" && sessionId) {
+      const params = (parsed as any).params;
+      const prompt = params?.prompt;
+      if (Array.isArray(prompt)) {
+        for (const part of prompt) {
+          if (part?.type === "text" && typeof part.text === "string") {
+            wsHandle.broadcast(createNotification("session/update", {
+              sessionId,
+              update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: part.text } },
+            }));
+          }
+        }
+      }
     }
 
     if (isResponse(parsed) && sessionId) {
@@ -116,7 +127,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         pipe.agentProc.stdin.write(promptReq);
       }
       pipe.socket.write(promptReq);
-      wsHandle.broadcast(promptReq);
       sessionManager.processMessage(
         promptReq.trim(),
         "web→agent",
@@ -147,6 +157,11 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       log(`Web archive → session ${sessionId}`);
       sessionManager.archiveSession(sessionId);
       wsHandle.broadcast(createNotification("session/update", { type: "session_archived" }));
+    },
+    onRestore: (sessionId) => {
+      log(`Web restore → session ${sessionId}`);
+      sessionManager.unarchiveSession(sessionId);
+      wsHandle.broadcast(createNotification("session/update", { type: "session_restored" }));
     },
   });
 

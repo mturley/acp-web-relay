@@ -162,6 +162,9 @@
     if (!confirm("Archive this session? It will be hidden from the active list.")) return;
     send("session/close", { sessionId });
 
+    const s = sessions.find((s) => s.sessionId === sessionId);
+    if (s) s.archived = true;
+
     if (activeSessionId === sessionId) {
       activeSessionId = null;
       const frame = document.getElementById("session-frame");
@@ -170,6 +173,19 @@
       frame.style.display = "none";
       welcome.style.display = "flex";
     }
+
+    render();
+    updateBadge();
+  }
+
+  function restoreSession(sessionId) {
+    send("session/restore", { sessionId });
+
+    const s = sessions.find((s) => s.sessionId === sessionId);
+    if (s) s.archived = false;
+
+    render();
+    updateBadge();
   }
 
   function renderSessionCard(s) {
@@ -188,14 +204,16 @@
     }
     html += `<div class="session-meta">${status} &middot; ${time}</div>`;
     html += `</div>`;
-    if (!isArchived) {
-      html += `<div class="session-actions">`;
+    html += `<div class="session-actions">`;
+    if (isArchived) {
+      html += `<button class="restore-btn" data-restore="${escapeHtml(s.sessionId)}" title="Restore session">&#x21A9;</button>`;
+    } else {
       if (status === "working") {
         html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" title="Cancel">&#x23F9;</button>`;
       }
-      html += `<button class="archive-btn" data-archive="${escapeHtml(s.sessionId)}" title="Archive session">&#x1F4E6;</button>`;
-      html += `</div>`;
+      html += `<button class="archive-btn" data-archive="${escapeHtml(s.sessionId)}" title="Archive session">&times;</button>`;
     }
+    html += `</div>`;
     html += `</div>`;
     return html;
   }
@@ -269,6 +287,14 @@
       e.stopPropagation();
       const sessionId = archiveBtn.dataset.archive;
       if (sessionId) archiveSession(sessionId);
+      return;
+    }
+
+    const restoreBtn = e.target.closest(".restore-btn");
+    if (restoreBtn) {
+      e.stopPropagation();
+      const sessionId = restoreBtn.dataset.restore;
+      if (sessionId) restoreSession(sessionId);
       return;
     }
 
