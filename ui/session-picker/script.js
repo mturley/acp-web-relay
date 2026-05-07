@@ -208,19 +208,15 @@
 
   function render() {
     const container = document.getElementById("sessions-container");
-    const emptyState = document.getElementById("empty-state");
 
     const activeSessions = sessions.filter((s) => !s.archived);
     const archivedSessions = sessions.filter((s) => s.archived);
 
     if (activeSessions.length === 0 && archivedSessions.length === 0) {
-      container.innerHTML = "";
-      container.appendChild(emptyState);
-      emptyState.style.display = "block";
+      container.innerHTML = '<div class="empty-state"><p>No active sessions</p><p class="hint">Start an agent session in your editor to see it here.</p></div>';
       return;
     }
 
-    emptyState.style.display = "none";
     let html = "";
 
     if (activeSessions.length > 0) {
