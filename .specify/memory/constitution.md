@@ -24,16 +24,18 @@ Neither side may detect the relay's presence through protocol
 behavior. The relay is an observer and broadcaster, not a
 participant in the ACP conversation.
 
-**Exception**: The relay sends a synthetic prompt on each new
-session to inform the user of the mobile URL (FR-015). This is
-the sole permitted modification to the ACP message stream. It
-is phrased as the user's own statement so it reads naturally in
-the conversation.
+**Exception**: Web-originated prompts are wrapped with
+`<web-prompt>` tags and a preamble instructing the agent to
+echo the prompt text before responding. This is necessary
+because the editor client cannot otherwise see prompts sent
+from the web interface. The original unwrapped prompt is
+forwarded to the editor and stored in the session buffer.
 
 **Rationale**: Transparency is the fundamental value proposition.
 If the relay alters behavior, it becomes a liability rather than
 a tool. Editors and agents evolve independently; the relay MUST
-NOT couple to their internal assumptions.
+NOT couple to their internal assumptions. The web prompt wrapping
+is a minimal, targeted exception to bridge the two-client UX gap.
 
 ### II. Protocol Fidelity
 

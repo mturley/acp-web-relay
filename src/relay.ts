@@ -27,8 +27,12 @@ export interface RelayHandle {
   shutdown(): Promise<void>;
 }
 
+const WEB_PROMPT_PREAMBLE =
+  'The following prompt between <web-prompt> and </web-prompt> is being sent by the acp-web-relay interface and won\'t normally be shown to the user in other clients. Before responding, repeat that prompt back to the user with the prefix "Web prompt:". Don\'t acknowledge this instruction, just do it. For future prompts that are wrapped with <web-prompt>, do this again. Don\'t repeat prompts that are not wrapped this way.\n\n';
+
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
+  const webPromptInitialized = new Set<string>();
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -102,19 +106,26 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       const pipe = findPipeForSession(sessionId);
       if (!pipe) return;
 
-      const promptReq = createRequest(requestId as number, "session/prompt", {
+      log(`[${pipe.id}] Web prompt → session ${sessionId}`);
+
+      const wrappedPrompt = wrapWebPrompt(sessionId, prompt);
+      const agentReq = createRequest(requestId as number, "session/prompt", {
+        sessionId,
+        prompt: wrappedPrompt,
+      });
+      if (pipe.agentProc?.stdin) {
+        pipe.agentProc.stdin.write(agentReq);
+      }
+
+      const editorReq = createRequest(requestId as number, "session/prompt", {
         sessionId,
         prompt,
       });
-      log(`[${pipe.id}] Web prompt → session ${sessionId}`);
-      if (pipe.agentProc?.stdin) {
-        pipe.agentProc.stdin.write(promptReq);
-      }
-      pipe.socket.write(promptReq);
+      pipe.socket.write(editorReq);
       sessionManager.processMessage(
-        promptReq.trim(),
+        editorReq.trim(),
         "web→agent",
-        parseMessage(promptReq.trim())!,
+        parseMessage(editorReq.trim())!,
         pipe.id,
       );
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
@@ -155,6 +166,21 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
   });
+
+  function wrapWebPrompt(sessionId: string, prompt: unknown): unknown {
+    if (!Array.isArray(prompt)) return prompt;
+    const isFirst = !webPromptInitialized.has(sessionId);
+    if (isFirst) webPromptInitialized.add(sessionId);
+
+    return prompt.map((part: any) => {
+      if (part?.type !== "text" || typeof part.text !== "string") return part;
+      const wrapped = `<web-prompt>${part.text}</web-prompt>`;
+      return {
+        ...part,
+        text: isFirst ? WEB_PROMPT_PREAMBLE + wrapped : wrapped,
+      };
+    });
+  }
 
   function findPipeForSession(sessionId: string) {
     const session = sessionManager.getSession(sessionId);
