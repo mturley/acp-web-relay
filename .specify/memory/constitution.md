@@ -1,16 +1,10 @@
 <!--
   Sync Impact Report
-  Version change: N/A → 1.0.0 (initial ratification)
-  Added principles:
-    - I. Transparent Proxy
-    - II. Protocol Fidelity
-    - III. Simplicity & Scope Discipline
-    - IV. Test-First
-    - V. Security by Default
-  Added sections:
-    - Deployment & Distribution
-    - Development Workflow
-    - Governance
+  Version change: 1.0.0 → 1.1.0
+  Modified principles:
+    - I. Transparent Proxy — added explicit exception for synthetic URL prompt (FR-015)
+    - V. Security by Default — changed from "localhost default" to "0.0.0.0 default
+      with informed consent prompt at startup"; added user warning requirement
   Templates requiring updates:
     - .specify/templates/plan-template.md ✅ no changes needed (generic)
     - .specify/templates/spec-template.md ✅ no changes needed (generic)
@@ -18,7 +12,7 @@
   Follow-up TODOs: none
 -->
 
-# acp-mobile-relay Constitution
+# acp-web-relay Constitution
 
 ## Core Principles
 
@@ -30,10 +24,18 @@ Neither side may detect the relay's presence through protocol
 behavior. The relay is an observer and broadcaster, not a
 participant in the ACP conversation.
 
+**Exception**: Web-originated prompts are wrapped with
+`<web-prompt>` tags and a preamble instructing the agent to
+echo the prompt text before responding. This is necessary
+because the editor client cannot otherwise see prompts sent
+from the web interface. The original unwrapped prompt is
+forwarded to the editor and stored in the session buffer.
+
 **Rationale**: Transparency is the fundamental value proposition.
 If the relay alters behavior, it becomes a liability rather than
 a tool. Editors and agents evolve independently; the relay MUST
-NOT couple to their internal assumptions.
+NOT couple to their internal assumptions. The web prompt wrapping
+is a minimal, targeted exception to bridge the two-client UX gap.
 
 ### II. Protocol Fidelity
 
@@ -76,18 +78,26 @@ before users encounter them.
 ### V. Security by Default
 
 The relay MUST NOT expose session data to the network without
-explicit user action. Default bind address MUST be localhost.
-WebSocket connections SHOULD require an auth token when binding
-to non-localhost interfaces. No user data may be sent to
-external services.
+the user's informed consent. The default bind address is
+`0.0.0.0` (all interfaces) because the primary use case
+requires phone access over the local network. However, on
+first startup, the relay MUST display a clear warning
+explaining that session data (which may include source code,
+credentials, and other sensitive content) will be accessible
+to any device on the network, and MUST prompt the user to
+confirm before proceeding. The warning MUST include
+instructions for restricting access via `--host 127.0.0.1`.
+WebSocket connections SHOULD require an auth token in a
+future release. No user data may be sent to external services.
 
-**Rationale**: The relay handles AI agent sessions that may
-contain source code, credentials, and other sensitive data.
-A relay accidentally exposed on a public network is a data leak.
+**Rationale**: The relay handles AI agent sessions containing
+sensitive data. Binding to all interfaces is necessary for
+the core use case, but the user must understand the exposure.
+Informed consent replaces forced restriction.
 
 ## Deployment & Distribution
 
-The relay MUST be installable and runnable via `npx acp-mobile-relay`
+The relay MUST be installable and runnable via `npx acp-web-relay`
 with zero configuration beyond specifying the downstream agent
 command. TypeScript compiled to JavaScript, distributed as an npm
 package. No native dependencies that would prevent cross-platform
@@ -105,7 +115,7 @@ use on macOS, Linux, or Windows.
 ## Governance
 
 This constitution governs all design and implementation decisions
-for acp-mobile-relay. Amendments require:
+for acp-web-relay. Amendments require:
 
 1. A documented rationale for the change
 2. Review of impact on existing implementation
@@ -119,4 +129,4 @@ principles. Complexity that violates a principle MUST be justified
 in the PR description with a specific rationale for why the
 principle does not apply.
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-06
+**Version**: 1.1.0 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-07

@@ -1,0 +1,48 @@
+{
+  "name": "acp-web-relay",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Monitor and control AI agent sessions from any browser.",
+  "bin": {
+    "acp-web-relay": "./dist/cli.js"
+  },
+  "scripts": {
+    "clean": "npm run clean:relay && npm run clean:ui",
+    "clean:relay": "rm -rf dist",
+    "clean:ui": "rm -rf ui/acp-ui/dist-web",
+    "build": "npm run build:relay && npm run build:ui",
+    "build:relay": "npm run clean:relay && tsc",
+    "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "node dist/cli.js serve --port 8765"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mturley/acp-web-relay.git"
+  },
+  "keywords": [
+    "acp",
+    "agent",
+    "relay",
+    "proxy",
+    "web"
+  ],
+  "author": "Mike Turley",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mturley/acp-web-relay/issues"
+  },
+  "homepage": "https://github.com/mturley/acp-web-relay#readme",
+  "dependencies": {
+    "commander": "^14.0.3",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

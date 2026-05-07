@@ -44,7 +44,7 @@ It only supports remote agents via WebSocket (no subprocess in a browser).
 An npm package that bridges any stdio-based ACP agent to WebSocket:
 
 ```bash
-npx @rebornix/stdio-to-ws "npx @zed-industries/claude-code-acp" --port 8765 --persist --grace-period -1
+npx @rebornix/stdio-to-ws "npx @agentclientprotocol/claude-agent-acp" --port 8765 --persist --grace-period -1
 ```
 
 - `--persist`: Keeps the agent process alive across WebSocket disconnects
