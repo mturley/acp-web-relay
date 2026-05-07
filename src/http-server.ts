@@ -46,13 +46,14 @@ export async function createHttpServer(
 
   const server = createServer(async (req, res) => {
     const url = req.url ?? "/";
+    const pathname = url.split("?")[0];
 
-    if (url === "/" || url === "/index.html") {
+    if (pathname === "/" || pathname === "/index.html") {
       return serveFile(res, join(uiRoot, "session-picker", "index.html"));
     }
 
-    if (url.startsWith("/session-picker/")) {
-      const filePath = join(uiRoot, url);
+    if (pathname.startsWith("/session-picker/")) {
+      const filePath = join(uiRoot, pathname);
       return serveFile(res, filePath);
     }
 
