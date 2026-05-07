@@ -15,6 +15,7 @@ import { createHttpServer, type HttpServerHandle } from "./http-server.js";
 import { createWsServer, type WsServerHandle } from "./ws-server.js";
 import type { WebSocket } from "ws";
 import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
+import { loadPersistedSessions, persistSessions, deletePersistedSession } from "./session-persistence.js";
 
 export interface RelayOptions {
   port: number;
@@ -32,6 +33,7 @@ export interface RelayHandle {
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
   const pendingAgentRequests = new Map<number | string, string>();
+  let relayRequestId = 900000;
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -42,6 +44,23 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   }
 
   const httpHandle = await createHttpServer(options.host, options.port);
+
+  const persisted = await loadPersistedSessions();
+  for (const session of persisted) {
+    sessionManager.addSession(session);
+  }
+  if (persisted.length > 0) {
+    log(`Loaded ${persisted.length} persisted session(s)`);
+  }
+
+  let daemonServer: DaemonServer;
+
+  function persistArchived() {
+    const archived = sessionManager.getAllSessions().filter((s) => s.archived);
+    persistSessions(archived).catch((err) => {
+      console.error(`Failed to persist sessions: ${err.message}`);
+    });
+  }
 
   const observer = (pipeId: string, line: string, direction: "editor→agent" | "agent→editor") => {
     const parsed = parseMessage(line);
@@ -68,6 +87,13 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+    }
+
+    if (direction === "editor→agent" && method === "session/close" && sessionId) {
+      log(`[${pipeId}] Editor closed session ${sessionId}`);
+      sessionManager.archiveSession(sessionId);
+      persistArchived();
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
@@ -105,6 +131,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const wsHandle = createWsServer({
     httpServer: httpHandle.server,
     sessionManager,
+    getLivePipeIds: () => new Set(daemonServer?.pipes.keys() ?? []),
     onPrompt: (sessionId, prompt, requestId, senderWs: WebSocket) => {
       const session = sessionManager.getSession(sessionId);
       if (!session) {
@@ -165,13 +192,43 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       );
     },
     onClose: (sessionId) => {
-      log(`Web archive → session ${sessionId}`);
+      const pipe = findPipeForSession(sessionId);
+      if (pipe) {
+        log(`[${pipe.id}] Web close → session ${sessionId}`);
+        const closeNotif = createNotification("session/close", { sessionId });
+        if (pipe.agentProc?.stdin) {
+          pipe.agentProc.stdin.write(closeNotif);
+        }
+        pipe.socket.write(closeNotif);
+      } else {
+        log(`Web close → session ${sessionId} (no pipe)`);
+      }
       sessionManager.archiveSession(sessionId);
+      persistArchived();
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
     onRestore: (sessionId) => {
-      log(`Web restore → session ${sessionId}`);
-      sessionManager.unarchiveSession(sessionId);
+      const pipe = findPipeForSession(sessionId);
+      if (pipe) {
+        log(`[${pipe.id}] Web restore → session ${sessionId}`);
+        const loadReq = createRequest(relayRequestId++, "session/load", { sessionId });
+        if (pipe.agentProc?.stdin) {
+          pipe.agentProc.stdin.write(loadReq);
+        }
+        pipe.socket.write(loadReq);
+        sessionManager.unarchiveSession(sessionId);
+        persistArchived();
+      } else {
+        log(`Web restore → session ${sessionId} (no pipe, cannot restore)`);
+      }
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+    },
+    onDelete: (sessionId) => {
+      log(`Web delete → session ${sessionId}`);
+      sessionManager.deleteSession(sessionId);
+      deletePersistedSession(sessionId).catch((err) => {
+        console.error(`Failed to delete persisted session: ${err.message}`);
+      });
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
     onResponse: (response) => {
@@ -192,10 +249,11 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     },
   });
 
-  const daemonServer = await startDaemonServer({
+  daemonServer = await startDaemonServer({
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
-      sessionManager.removeSessionsBySource(pipeId);
+      sessionManager.archiveSessionsBySource(pipeId);
+      persistArchived();
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
   });
