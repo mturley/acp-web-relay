@@ -1,6 +1,6 @@
 {
   "name": "acp-web-relay",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "description": "Monitor and control AI agent sessions from any browser.",
   "files": [
