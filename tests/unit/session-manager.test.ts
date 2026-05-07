@@ -45,7 +45,7 @@ describe("SessionManager", () => {
   });
 
   describe("bufferMessage", () => {
-    it("adds messages to session buffer", () => {
+    it("converts session/prompt to user_message_chunk in buffer", () => {
       manager.createSession("sess_abc123", "/project", "pipe_1");
       const parsed = parseMessage(fixtures.sessionPromptRequest)!;
       manager.bufferMessage("sess_abc123", fixtures.sessionPromptRequest, "editor→agent", parsed);
@@ -54,7 +54,10 @@ describe("SessionManager", () => {
       expect(messages).toHaveLength(1);
       expect(messages[0].id).toBe(1);
       expect(messages[0].direction).toBe("editor→agent");
-      expect(messages[0].method).toBe("session/prompt");
+      expect(messages[0].method).toBe("session/update");
+      const raw = JSON.parse(messages[0].raw);
+      expect(raw.params.update.sessionUpdate).toBe("user_message_chunk");
+      expect(raw.params.update.content.text).toBe("Fix the pagination bug");
     });
 
     it("increments message IDs sequentially", () => {
@@ -149,7 +152,9 @@ describe("SessionManager", () => {
 
       const buffered = manager.getBufferedMessages("sess_abc123");
       expect(buffered).toHaveLength(3);
-      expect(buffered[0].raw).toBe(fixtures.sessionPromptRequest);
+      const firstRaw = JSON.parse(buffered[0].raw);
+      expect(firstRaw.params.update.sessionUpdate).toBe("user_message_chunk");
+      expect(firstRaw.params.update.content.text).toBe("Fix the pagination bug");
       expect(buffered[1].raw).toBe(fixtures.sessionUpdateNotification);
       expect(buffered[2].raw).toBe(fixtures.sessionUpdateEndTurn);
     });

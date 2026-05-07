@@ -66,20 +66,47 @@ export class SessionManager {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
+    const method = extractMethod(parsed);
+    const now = new Date().toISOString();
+
+    if (method === "session/prompt" && isRequest(parsed)) {
+      const promptText = this.extractPromptText(parsed);
+      if (promptText) {
+        const userChunk = JSON.stringify({
+          jsonrpc: "2.0",
+          method: "session/update",
+          params: {
+            sessionId,
+            update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: promptText } },
+          },
+        });
+        const counter = (this.messageCounter.get(sessionId) ?? 0) + 1;
+        this.messageCounter.set(sessionId, counter);
+        session.messages.push({
+          id: counter,
+          direction,
+          timestamp: now,
+          raw: userChunk,
+          method: "session/update",
+          sessionId,
+        });
+        session.updatedAt = now;
+      }
+      return;
+    }
+
     const counter = (this.messageCounter.get(sessionId) ?? 0) + 1;
     this.messageCounter.set(sessionId, counter);
 
-    const message: Message = {
+    session.messages.push({
       id: counter,
       direction,
-      timestamp: new Date().toISOString(),
+      timestamp: now,
       raw,
-      method: extractMethod(parsed),
+      method,
       sessionId: extractSessionId(parsed),
-    };
-
-    session.messages.push(message);
-    session.updatedAt = message.timestamp;
+    });
+    session.updatedAt = now;
   }
 
   processMessage(raw: string, direction: MessageDirection, parsed: JsonRpcMessage, sourceId: string = "default"): void {
