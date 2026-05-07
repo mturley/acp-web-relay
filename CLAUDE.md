@@ -35,8 +35,34 @@ The chat interface is a fork of ACP UI at `ui/acp-ui/` (submodule pointing to [m
 - [stdio-to-ws](https://www.npmjs.com/package/@rebornix/stdio-to-ws) — reference implementation for ACP-over-WebSocket bridge
 - [claude-agent-acp](https://github.com/agentclientprotocol/claude-agent-acp) — Claude Code's ACP adapter
 
-<!-- SPECKIT START -->
+## Architecture Notes
+
+### Daemon Protocol
+The daemon listens on a Unix socket (`~/.acp-web-relay/daemon.sock`). When an editor subprocess connects, it sends the agent command as the **first line** over the socket. The daemon spawns the agent and pipes all subsequent data bidirectionally. The daemon owns the agent process.
+
+### Message Broadcasting
+- `agent→editor` messages are broadcast to all web clients (raw ACP protocol messages)
+- `editor→agent` prompts are NOT broadcast raw (they'd confuse ACP UI). Instead, the relay synthesizes `session/update` notifications with `user_message_chunk` so ACP UI renders them as user messages.
+- `relay/sessions_changed` is a relay-specific notification (not ACP protocol) that tells the session picker to re-fetch the session list. It's separate from `session/update` to avoid interfering with ACP UI's message rendering.
+
+### Web Prompt Echo
+When a prompt is sent from the web UI, the relay injects a synthetic `agent_message_chunk` containing `\n\n---\n[Web prompt: <text>]\n\n` into the editor's stream so the editor user can see what was asked. This is excluded from the sending web client via `broadcast(data, exclude)`. The agent receives the original unmodified prompt.
+
+### Permission Forwarding
+Agent-originated JSON-RPC requests (like `session/request_permission`) are tracked by `id → pipeId`. When a web client sends a response, it's routed to the correct agent. When the editor approves a permission, the response is broadcast to web clients so the ACP UI fork can dismiss its dialog.
+
+### Session Buffering
+- `session/prompt` messages are converted to `user_message_chunk` notifications in the buffer so they replay correctly in ACP UI
+- `session/request_permission` messages are NOT buffered to avoid replaying stale permission dialogs
+- End-of-turn is detected from the JSON-RPC response to `session/prompt` (tracked via `pendingPromptRequests`), not from `session/update` notifications
+
+### ACP UI Integration
+The session picker pre-populates two localStorage keys before loading ACP UI in the iframe:
+- `acp-ui:agents` — `{ agents: { "Relay": { transport: "websocket", url: "ws://..." } } }`
+- `acp-ui:sessions.json` — `{ sessions: [{ id, agentName: "Relay", sessionId, title, cwd, supportsLoadSession: true, ... }] }`
+
+The iframe URL includes `?agent=Relay&session=<id>&hideSidebar=true`.
+
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
 at `specs/001-acp-relay-proxy/plan.md`
-<!-- SPECKIT END -->
