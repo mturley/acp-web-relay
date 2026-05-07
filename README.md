@@ -32,7 +32,7 @@ A relay proxy that sits between your code editor and any [ACP](https://agentclie
 The relay runs as a daemon server. Your editor launches `acp-web-relay agent <cmd>` as a subprocess, which connects to the daemon and spawns the agent. The daemon:
 
 1. **Proxies all ACP messages** transparently between editor and agent
-2. **Serves a web UI** with a session picker and chat interface
+2. **Serves a web UI** with a session picker sidebar and [ACP UI](https://github.com/mturley/acp-ui) chat interface
 3. **Broadcasts all updates** to connected web clients in real time
 4. **Accepts prompts and cancellations** from web clients
 5. **Aggregates sessions** from multiple editors into one web UI
@@ -100,17 +100,19 @@ When you start a session, the editor subprocess connects to the running relay da
 
 ### 3. Open in a browser
 
-Navigate to the network URL shown when you started the relay. You'll see the session picker showing active sessions grouped by project and branch.
+Navigate to the network URL shown when you started the relay. You'll see the session picker sidebar showing active sessions grouped by project and branch. Click a session to view it in the ACP UI chat interface.
 
 ## Features
 
 - **Editor-agnostic**: Works with any ACP client (Zed, JetBrains, Neovim, VS Code)
 - **Agent-agnostic**: Works with any ACP agent (Claude Code, Gemini CLI, Codex, OpenCode, etc.)
-- **Session grouping**: Sessions are grouped by git repository and branch
-- **Real-time mirroring**: Both the editor and the browser see the same session state
-- **Responsive web UI**: Works on phones, tablets, and desktops
-- **Prompt from anywhere**: Send prompts from the browser; they appear in the editor too
+- **Session picker sidebar**: Sessions grouped by git repo and branch, with first prompt as title and latest prompt shown
+- **Live updates**: Session list, titles, and status update in real time without page reload
+- **Prompt from anywhere**: Send prompts from the browser; the editor sees them echoed as `[Web prompt: ...]`
+- **Cancel from browser**: Stop a running agent operation remotely
+- **Archive/restore**: Hide sessions from the active list and restore them later
 - **Multi-editor support**: Sessions from all editors appear in one web UI
+- **Responsive web UI**: Works on phones, tablets, and desktops
 - **No account required**: Everything runs locally, no cloud service involved
 
 ## Network Access
@@ -147,11 +149,28 @@ Exits with an error if no relay daemon is running.
 ## Development
 
 ```bash
+git clone --recurse-submodules https://github.com/mturley/acp-web-relay.git
+cd acp-web-relay
 npm install
-npm run build
+npm run build        # builds relay + ACP UI
 npm test
-npm run dev    # watch mode
+npm run dev          # watch mode (relay only)
 ```
+
+### Build scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run build` | Build everything (relay + ACP UI) |
+| `npm run build:relay` | Build relay TypeScript only |
+| `npm run build:ui` | Build ACP UI web version only |
+| `npm run clean` | Clean all build artifacts |
+| `npm test` | Run tests |
+| `npm start` | Start the relay server |
+
+### ACP UI Fork
+
+The chat interface is a fork of [ACP UI](https://github.com/formulahendry/acp-ui) at `ui/acp-ui/` ([mturley/acp-ui](https://github.com/mturley/acp-ui)). See `ui/acp-ui/FORK_CHANGES.md` for details on what was modified and why.
 
 ## License
 

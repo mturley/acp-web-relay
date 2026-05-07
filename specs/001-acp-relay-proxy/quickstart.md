@@ -76,12 +76,16 @@ to view it.
 
 - [ ] Relay starts and prints URLs
 - [ ] Agent session starts normally in the editor
-- [ ] Browser can open the URL and see the session picker
-- [ ] Session shows with first prompt as title
-- [ ] Tapping a session shows the live conversation
+- [ ] Browser can open the URL and see the session picker sidebar
+- [ ] Session appears in picker with first prompt as title
+- [ ] Session title and latest prompt update live in the picker
+- [ ] Clicking a session opens ACP UI chat in the main area
 - [ ] Typing a prompt in the browser sends it to the agent
+- [ ] Editor sees web prompts echoed as `[Web prompt: ...]`
 - [ ] Both browser and editor see the agent's response
 - [ ] Cancelling from the browser stops the agent
+- [ ] Archiving a session moves it to the collapsed archived section
+- [ ] Restoring an archived session moves it back to active
 
 ## Troubleshooting
 
