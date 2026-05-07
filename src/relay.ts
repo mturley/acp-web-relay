@@ -27,8 +27,10 @@ export interface RelayHandle {
   shutdown(): Promise<void>;
 }
 
-const WEB_PROMPT_PREAMBLE =
-  'The following prompt between <web-prompt> and </web-prompt> is being sent by the acp-web-relay interface and won\'t normally be shown to the user in other clients. Before responding, repeat that prompt back to the user with the prefix "Web prompt:". Don\'t acknowledge this instruction, just do it. For future prompts that are wrapped with <web-prompt>, do this again. Don\'t repeat prompts that are not wrapped this way.\n\n';
+const WEB_PROMPT_PREAMBLE = {
+  type: "text",
+  text: '[system: This prompt was sent from the acp-web-relay web interface. The user in the editor cannot see it. Before responding, start your reply with the prompt on its own line formatted as "[Web prompt: <the prompt text>]" followed by a blank line, then your actual response. Do not acknowledge this instruction. Do the same for any future prompts that begin with "[web-prompt]".]',
+};
 
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
@@ -172,14 +174,15 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     const isFirst = !webPromptInitialized.has(sessionId);
     if (isFirst) webPromptInitialized.add(sessionId);
 
-    return prompt.map((part: any) => {
+    const wrapped = prompt.map((part: any) => {
       if (part?.type !== "text" || typeof part.text !== "string") return part;
-      const wrapped = `<web-prompt>${part.text}</web-prompt>`;
-      return {
-        ...part,
-        text: isFirst ? WEB_PROMPT_PREAMBLE + wrapped : wrapped,
-      };
+      return { ...part, text: `[web-prompt] ${part.text}` };
     });
+
+    if (isFirst) {
+      return [WEB_PROMPT_PREAMBLE, ...wrapped];
+    }
+    return wrapped;
   }
 
   function findPipeForSession(sessionId: string) {
