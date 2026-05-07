@@ -2,13 +2,17 @@
   "name": "acp-web-relay",
   "version": "1.0.0",
   "type": "module",
-  "description": "Monitor and control AI agent sessions from your phone.",
+  "description": "Monitor and control AI agent sessions from any browser.",
   "bin": {
     "acp-web-relay": "./dist/cli.js"
   },
   "scripts": {
-    "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "clean": "npm run clean:relay && npm run clean:ui",
+    "clean:relay": "rm -rf dist",
+    "clean:ui": "rm -rf ui/acp-ui/dist-web",
+    "build": "npm run build:relay && npm run build:ui",
+    "build:relay": "npm run clean:relay && tsc",
+    "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -23,7 +27,7 @@
     "agent",
     "relay",
     "proxy",
-    "mobile"
+    "web"
   ],
   "author": "Mike Turley",
   "license": "MIT",
