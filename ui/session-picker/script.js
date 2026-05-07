@@ -159,7 +159,6 @@
   }
 
   function archiveSession(sessionId) {
-    if (!confirm("Archive this session? It will be hidden from the active list.")) return;
     send("session/close", { sessionId });
 
     if (activeSessionId === sessionId) {
