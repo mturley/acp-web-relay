@@ -30,6 +30,7 @@ export class SessionManager {
       createdAt: now,
       updatedAt: now,
       promptPending: false,
+      lastPrompt: null,
       sourceId,
     };
     this.sessions.set(sessionId, session);
@@ -116,17 +117,13 @@ export class SessionManager {
     if (method === "session/prompt") {
       session.status = "working";
       session.promptPending = true;
-      if (!session.title && isRequest(parsed)) {
-        const params = parsed.params as Record<string, unknown> | undefined;
-        const prompt = params?.prompt;
-        if (Array.isArray(prompt)) {
-          const textPart = prompt.find(
-            (p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string",
-          );
-          if (textPart) {
-            const text = (textPart as { text: string }).text;
-            session.title = text.length > 60 ? text.slice(0, 60) + "…" : text;
+      if (isRequest(parsed)) {
+        const promptText = this.extractPromptText(parsed);
+        if (promptText) {
+          if (!session.title) {
+            session.title = promptText.length > 60 ? promptText.slice(0, 60) + "…" : promptText;
           }
+          session.lastPrompt = promptText.length > 60 ? promptText.slice(0, 60) + "…" : promptText;
         }
       }
     } else if (method === "session/update" && isRequest(parsed)) {
@@ -141,6 +138,18 @@ export class SessionManager {
     }
   }
 
+  private extractPromptText(parsed: JsonRpcMessage): string | null {
+    const params = (parsed as { params?: Record<string, unknown> }).params;
+    const prompt = params?.prompt;
+    if (Array.isArray(prompt)) {
+      const textPart = prompt.find(
+        (p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string",
+      );
+      if (textPart) return (textPart as { text: string }).text;
+    }
+    return null;
+  }
+
   setGitMeta(sessionId: string, gitMeta: GitMeta): void {
     const session = this.sessions.get(sessionId);
     if (session) {
@@ -152,6 +161,7 @@ export class SessionManager {
     sessionId: string;
     cwd: string;
     title: string | null;
+    lastPrompt: string | null;
     updatedAt: string;
     _meta: { relay: { status: SessionStatus; git: GitMeta | null } };
   }> {
@@ -159,6 +169,7 @@ export class SessionManager {
       sessionId: s.sessionId,
       cwd: s.cwd,
       title: s.title,
+      lastPrompt: s.lastPrompt,
       updatedAt: s.updatedAt,
       _meta: {
         relay: {

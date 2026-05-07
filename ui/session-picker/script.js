@@ -4,6 +4,7 @@
   let ws = null;
   let requestId = 1;
   let sessions = [];
+  let activeSessionId = null;
 
   function connect() {
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
@@ -94,6 +95,47 @@
     return groups;
   }
 
+  function configureAcpUi() {
+    const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProtocol}//${location.host}/ws`;
+    const config = {
+      agents: {
+        "Relay": {
+          transport: "websocket",
+          url: wsUrl,
+        },
+      },
+    };
+    localStorage.setItem("acp-ui:agents", JSON.stringify(config));
+  }
+
+  function openSession(sessionId) {
+    activeSessionId = sessionId;
+    configureAcpUi();
+
+    const container = document.getElementById("sessions-container");
+    const frame = document.getElementById("session-frame");
+    const backBtn = document.getElementById("back-btn");
+
+    container.style.display = "none";
+    frame.style.display = "block";
+    frame.src = "/ui/";
+    backBtn.style.display = "block";
+  }
+
+  function closeSession() {
+    activeSessionId = null;
+
+    const container = document.getElementById("sessions-container");
+    const frame = document.getElementById("session-frame");
+    const backBtn = document.getElementById("back-btn");
+
+    frame.src = "about:blank";
+    frame.style.display = "none";
+    container.style.display = "block";
+    backBtn.style.display = "none";
+  }
+
   function render() {
     const container = document.getElementById("sessions-container");
     const emptyState = document.getElementById("empty-state");
@@ -115,18 +157,22 @@
       for (const s of groupSessions) {
         const status = s._meta?.relay?.status || "idle";
         const title = escapeHtml(s.title || s.sessionId);
+        const lastPrompt = s.lastPrompt && s.lastPrompt !== s.title ? escapeHtml(s.lastPrompt) : null;
         const time = formatTime(s.updatedAt);
-        html += `<a class="session-card" href="/ui/?session=${encodeURIComponent(s.sessionId)}">`;
+        html += `<div class="session-card" data-session="${escapeHtml(s.sessionId)}">`;
         html += `<div class="session-status ${status}"></div>`;
         html += `<div class="session-info">`;
         html += `<div class="session-title">${title}</div>`;
+        if (lastPrompt) {
+          html += `<div class="session-last-prompt">${lastPrompt}</div>`;
+        }
         html += `<div class="session-meta">${status} &middot; ${time}</div>`;
         html += `</div>`;
         if (status === "working") {
           html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}">Cancel</button>`;
         }
         html += `<div class="session-arrow">&rsaquo;</div>`;
-        html += `</a>`;
+        html += `</div>`;
       }
       html += `</div>`;
     }
@@ -142,14 +188,26 @@
 
   document.addEventListener("click", (e) => {
     const btn = e.target.closest(".cancel-btn");
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const sessionId = btn.dataset.session;
-    if (sessionId) {
-      send("session/cancel", { sessionId });
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const sessionId = btn.dataset.session;
+      if (sessionId) {
+        send("session/cancel", { sessionId });
+      }
+      return;
+    }
+
+    const card = e.target.closest(".session-card");
+    if (card) {
+      const sessionId = card.dataset.session;
+      if (sessionId) {
+        openSession(sessionId);
+      }
     }
   });
+
+  document.getElementById("back-btn").addEventListener("click", closeSession);
 
   connect();
 })();

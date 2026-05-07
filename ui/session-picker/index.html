@@ -8,6 +8,7 @@
 </head>
 <body>
   <header>
+    <button id="back-btn" class="back-btn" style="display: none;">&larr;</button>
     <h1>ACP Relay</h1>
     <div id="connection-status" class="status-dot disconnected" title="Disconnected"></div>
   </header>
@@ -17,6 +18,7 @@
       <p class="hint">Start an agent session in your editor to see it here.</p>
     </div>
   </main>
+  <iframe id="session-frame" class="session-frame" style="display: none;"></iframe>
   <script src="/session-picker/script.js"></script>
 </body>
 </html>

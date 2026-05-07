@@ -33,6 +33,7 @@ export interface RelaySession {
   createdAt: string;
   updatedAt: string;
   promptPending: boolean;
+  lastPrompt: string | null;
   sourceId: string;
 }
 
