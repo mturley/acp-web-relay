@@ -56,11 +56,19 @@ Everything stays in sync -- the editor sees what you do on the phone and vice ve
 npx acp-web-relay serve --port 8765
 ```
 
+Or from a local clone:
+
+```bash
+node dist/cli.js serve --port 8765
+```
+
 The relay prints the local and network URLs. Open the network URL in a browser.
 
 ### 2. Configure your editor
 
 Point your editor at the relay instead of the agent directly. In Zed's `settings.json`:
+
+Using npx (after publishing to npm):
 
 ```json
 {
@@ -69,6 +77,20 @@ Point your editor at the relay instead of the agent directly. In Zed's `settings
       "type": "custom",
       "command": "npx",
       "args": ["acp-web-relay", "agent", "npx @agentclientprotocol/claude-agent-acp"]
+    }
+  }
+}
+```
+
+Using a local clone:
+
+```json
+{
+  "agent_servers": {
+    "Claude (Web Relay)": {
+      "type": "custom",
+      "command": "node",
+      "args": ["/path/to/acp-web-relay/dist/cli.js", "agent", "npx @agentclientprotocol/claude-agent-acp"]
     }
   }
 }

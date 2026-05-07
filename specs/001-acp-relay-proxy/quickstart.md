@@ -15,11 +15,19 @@
 npx acp-web-relay serve --port 8765
 ```
 
+Or from a local clone:
+
+```bash
+node dist/cli.js serve --port 8765
+```
+
 The relay prints URLs for local and network access. Keep this running.
 
 ### 2. Configure your editor
 
 Add the relay as a custom agent. In Zed's `settings.json`:
+
+Using npx (after publishing to npm):
 
 ```json
 {
@@ -29,6 +37,23 @@ Add the relay as a custom agent. In Zed's `settings.json`:
       "command": "npx",
       "args": [
         "acp-web-relay",
+        "agent", "npx @agentclientprotocol/claude-agent-acp"
+      ]
+    }
+  }
+}
+```
+
+Using a local clone:
+
+```json
+{
+  "agent_servers": {
+    "Claude (Web Relay)": {
+      "type": "custom",
+      "command": "node",
+      "args": [
+        "/path/to/acp-web-relay/dist/cli.js",
         "agent", "npx @agentclientprotocol/claude-agent-acp"
       ]
     }
