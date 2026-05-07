@@ -7,11 +7,11 @@ A relay proxy that sits between your code editor and any [ACP](https://agentclie
 ## How It Works
 
 ```
-                     ┌───────────────┐
-                     │  acp-web-     │
-                     │    relay      │
-                     │   (daemon)    │
-                     │               │
+                    ┌───────────────┐
+                    │  acp-web-     │
+                    │    relay      │
+                    │   (daemon)    │
+                    │               │
 ┌──────────┐  IPC   │  ┌─────────┐  │  stdio  ┌──────────────────┐
 │  Editor  │◄──────►│  │ Agent   │◄─┼────────►│   ACP Agent      │
 │ (Zed,    │        │  │ Pipe    │  │         │ (Claude Code,    │
@@ -68,7 +68,7 @@ The relay prints the local and network URLs. Open the network URL in a browser.
 
 Point your editor at the relay instead of the agent directly. In Zed's `settings.json`:
 
-Using npx (after publishing to npm):
+Using npx:
 
 ```json
 {
@@ -110,7 +110,7 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 - **Live updates**: Session list, titles, and status update in real time without page reload
 - **Prompt from anywhere**: Send prompts from the browser; the editor sees them echoed as `[Web prompt: ...]`
 - **Cancel from browser**: Stop a running agent operation remotely
-- **Archive/restore**: Hide sessions from the active list and restore them later
+- **Archive/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
 - **Multi-editor support**: Sessions from all editors appear in one web UI
 - **Responsive web UI**: Works on phones, tablets, and desktops
 - **No account required**: Everything runs locally, no cloud service involved
@@ -174,4 +174,4 @@ The chat interface is a fork of [ACP UI](https://github.com/formulahendry/acp-ui
 
 ## License
 
-MIT
+[CC0-1.0](LICENSE)

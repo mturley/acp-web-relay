@@ -17,10 +17,12 @@ import type { SessionManager } from "./session-manager.js";
 export interface WsServerOptions {
   httpServer: HttpServer;
   sessionManager: SessionManager;
+  getLivePipeIds?: () => Set<string>;
   onPrompt?: (sessionId: string, prompt: unknown, requestId: number | string, senderWs: WebSocket) => void;
   onCancel?: (sessionId: string) => void;
   onClose?: (sessionId: string) => void;
   onRestore?: (sessionId: string) => void;
+  onDelete?: (sessionId: string) => void;
   onResponse?: (response: string) => void;
 }
 
@@ -30,7 +32,7 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, onPrompt, onCancel, onClose, onRestore, onResponse } = options;
+  const { httpServer, sessionManager, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -97,8 +99,9 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
 
         if (method === "session/list") {
           if (req.id !== undefined) {
+            const livePipeIds = getLivePipeIds ? getLivePipeIds() : undefined;
             ws.send(createResponse(req.id, {
-              sessions: sessionManager.getSessionList(),
+              sessions: sessionManager.getSessionList(livePipeIds),
             }));
           }
           continue;
@@ -158,6 +161,14 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
           const sessionId = (req.params as Record<string, unknown>)?.sessionId as string;
           if (sessionId && onRestore) {
             onRestore(sessionId);
+          }
+          continue;
+        }
+
+        if (method === "session/delete") {
+          const sessionId = (req.params as Record<string, unknown>)?.sessionId as string;
+          if (sessionId && onDelete) {
+            onDelete(sessionId);
           }
           continue;
         }

@@ -179,7 +179,8 @@
     render();
   }
 
-  function archiveSession(sessionId) {
+  function closeSession(sessionId) {
+    if (!confirm("Close this session? You can restore it later if the agent is still running.")) return;
     send("session/close", { sessionId });
 
     if (activeSessionId === sessionId) {
@@ -197,30 +198,50 @@
     send("session/restore", { sessionId });
   }
 
+  function deleteSession(sessionId) {
+    if (!confirm("Delete this session permanently? This cannot be undone.")) return;
+    send("session/delete", { sessionId });
+
+    if (activeSessionId === sessionId) {
+      activeSessionId = null;
+      updateUrl();
+      const frame = document.getElementById("session-frame");
+      const welcome = document.getElementById("welcome");
+      frame.src = "about:blank";
+      frame.style.display = "none";
+      welcome.style.display = "flex";
+    }
+  }
+
   function renderSessionCard(s) {
     const status = s._meta?.relay?.status || "idle";
     const isActive = s.sessionId === activeSessionId;
     const isArchived = s.archived;
+    const pipeAlive = s.pipeAlive;
+    const displayStatus = isArchived && !pipeAlive ? "disconnected" : status;
     const title = escapeHtml(s.title || s.sessionId);
     const lastPrompt = s.lastPrompt && s.lastPrompt !== s.title ? escapeHtml(s.lastPrompt) : null;
     const time = formatTime(s.updatedAt);
     let html = `<div class="session-card${isActive ? " active" : ""}${isArchived ? " archived" : ""}" data-session="${escapeHtml(s.sessionId)}">`;
-    html += `<div class="session-status ${status}"></div>`;
+    html += `<div class="session-status ${displayStatus}"></div>`;
     html += `<div class="session-info">`;
     html += `<div class="session-title">${title}</div>`;
     if (lastPrompt) {
       html += `<div class="session-last-prompt">${lastPrompt}</div>`;
     }
-    html += `<div class="session-meta">${status} &middot; ${time}</div>`;
+    html += `<div class="session-meta">${displayStatus} &middot; ${time}</div>`;
     html += `</div>`;
     html += `<div class="session-actions">`;
     if (isArchived) {
-      html += `<button class="restore-btn" data-restore="${escapeHtml(s.sessionId)}" title="Restore session">&#x21A9;</button>`;
+      if (pipeAlive) {
+        html += `<button class="restore-btn" data-restore="${escapeHtml(s.sessionId)}" title="Restore session">&#x21A9;</button>`;
+      }
+      html += `<button class="delete-btn" data-delete="${escapeHtml(s.sessionId)}" title="Delete session">&times;</button>`;
     } else {
       if (status === "working") {
         html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" title="Cancel">&#x23F9;</button>`;
       }
-      html += `<button class="archive-btn" data-archive="${escapeHtml(s.sessionId)}" title="Archive session">&times;</button>`;
+      html += `<button class="close-btn" data-close="${escapeHtml(s.sessionId)}" title="Close session">&times;</button>`;
     }
     html += `</div>`;
     html += `</div>`;
@@ -295,11 +316,11 @@
       return;
     }
 
-    const archiveBtn = e.target.closest(".archive-btn");
-    if (archiveBtn) {
+    const closeBtn = e.target.closest(".close-btn");
+    if (closeBtn) {
       e.stopPropagation();
-      const sessionId = archiveBtn.dataset.archive;
-      if (sessionId) archiveSession(sessionId);
+      const sessionId = closeBtn.dataset.close;
+      if (sessionId) closeSession(sessionId);
       return;
     }
 
@@ -308,6 +329,14 @@
       e.stopPropagation();
       const sessionId = restoreBtn.dataset.restore;
       if (sessionId) restoreSession(sessionId);
+      return;
+    }
+
+    const deleteBtn = e.target.closest(".delete-btn");
+    if (deleteBtn) {
+      e.stopPropagation();
+      const sessionId = deleteBtn.dataset.delete;
+      if (sessionId) deleteSession(sessionId);
       return;
     }
 

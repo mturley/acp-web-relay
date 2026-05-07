@@ -46,30 +46,31 @@ export async function createHttpServer(
 
   const server = createServer(async (req, res) => {
     const url = req.url ?? "/";
+    const pathname = url.split("?")[0];
 
-    if (url === "/" || url === "/index.html") {
+    if (pathname === "/" || pathname === "/index.html") {
       return serveFile(res, join(uiRoot, "session-picker", "index.html"));
     }
 
-    if (url.startsWith("/session-picker/")) {
-      const filePath = join(uiRoot, url);
+    if (pathname.startsWith("/session-picker/")) {
+      const filePath = join(uiRoot, pathname);
       return serveFile(res, filePath);
     }
 
     if (url.startsWith("/ui/") || url === "/ui") {
       const pathPart = url.slice(4).split("?")[0];
       const filePath = pathPart && pathPart !== "/"
-        ? join(uiRoot, "acp-ui", "dist-web", pathPart)
-        : join(uiRoot, "acp-ui", "dist-web", "index.html");
+        ? join(uiRoot, "acp-ui-dist", pathPart)
+        : join(uiRoot, "acp-ui-dist", "index.html");
       return serveFile(res, filePath);
     }
 
     if (url.startsWith("/assets/")) {
-      return serveFile(res, join(uiRoot, "acp-ui", "dist-web", url));
+      return serveFile(res, join(uiRoot, "acp-ui-dist", url));
     }
 
     if (url === "/vite.svg" || url === "/tauri.svg") {
-      return serveFile(res, join(uiRoot, "acp-ui", "dist-web", url));
+      return serveFile(res, join(uiRoot, "acp-ui-dist", url));
     }
 
     res.writeHead(404, { "Content-Type": "text/plain" });

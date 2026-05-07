@@ -40,6 +40,12 @@ export class SessionManager {
     return session;
   }
 
+  addSession(session: RelaySession): void {
+    this.sessions.set(session.sessionId, session);
+    const maxId = session.messages.reduce((max, m) => Math.max(max, m.id), 0);
+    this.messageCounter.set(session.sessionId, maxId);
+  }
+
   getSession(sessionId: string): RelaySession | undefined {
     return this.sessions.get(sessionId);
   }
@@ -53,6 +59,19 @@ export class SessionManager {
       if (session.sourceId === sourceId) {
         this.sessions.delete(id);
         this.messageCounter.delete(id);
+      }
+    }
+  }
+
+  deleteSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+    this.messageCounter.delete(sessionId);
+  }
+
+  archiveSessionsBySource(sourceId: string): void {
+    for (const session of this.sessions.values()) {
+      if (session.sourceId === sourceId) {
+        session.archived = true;
       }
     }
   }
@@ -214,13 +233,14 @@ export class SessionManager {
     }
   }
 
-  getSessionList(): Array<{
+  getSessionList(livePipeIds?: Set<string>): Array<{
     sessionId: string;
     cwd: string;
     title: string | null;
     lastPrompt: string | null;
     updatedAt: string;
     archived: boolean;
+    pipeAlive: boolean;
     _meta: { relay: { status: SessionStatus; git: GitMeta | null } };
   }> {
     return this.getAllSessions().map((s) => ({
@@ -230,6 +250,7 @@ export class SessionManager {
       lastPrompt: s.lastPrompt,
       updatedAt: s.updatedAt,
       archived: s.archived,
+      pipeAlive: livePipeIds ? livePipeIds.has(s.sourceId) : true,
       _meta: {
         relay: {
           status: s.status,
