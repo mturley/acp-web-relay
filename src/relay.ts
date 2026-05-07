@@ -2,6 +2,7 @@ import {
   parseMessage,
   extractMethod,
   extractSessionId,
+  isRequest,
   isResponse,
   createRequest,
   createNotification,
@@ -30,6 +31,7 @@ export interface RelayHandle {
 
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
+  const pendingAgentRequests = new Map<number | string, string>();
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -50,6 +52,10 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     const hadSession = sessionId ? !!sessionManager.getSession(sessionId) : false;
 
     sessionManager.processMessage(line, direction, parsed, pipeId);
+
+    if (direction === "agent→editor" && isRequest(parsed) && (parsed as any).id !== undefined) {
+      pendingAgentRequests.set((parsed as any).id, pipeId);
+    }
 
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
@@ -159,6 +165,22 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       log(`Web restore → session ${sessionId}`);
       sessionManager.unarchiveSession(sessionId);
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
+    },
+    onResponse: (response) => {
+      const parsed = parseMessage(response.trim());
+      if (!parsed) return;
+      const id = (parsed as any).id;
+      const pipeId = pendingAgentRequests.get(id);
+      if (pipeId) {
+        pendingAgentRequests.delete(id);
+        const pipe = daemonServer.pipes.get(pipeId);
+        if (pipe) {
+          log(`[${pipeId}] Web response → agent (id: ${id})`);
+          if (pipe.agentProc?.stdin) {
+            pipe.agentProc.stdin.write(response);
+          }
+        }
+      }
     },
   });
 

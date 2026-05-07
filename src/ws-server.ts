@@ -5,6 +5,7 @@ import { log } from "./daemon.js";
 import {
   parseMessages,
   isRequest,
+  isResponse,
   extractMethod,
   createResponse,
   createErrorResponse,
@@ -20,6 +21,7 @@ export interface WsServerOptions {
   onCancel?: (sessionId: string) => void;
   onClose?: (sessionId: string) => void;
   onRestore?: (sessionId: string) => void;
+  onResponse?: (response: string) => void;
 }
 
 export interface WsServerHandle {
@@ -28,7 +30,7 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, onPrompt, onCancel, onClose, onRestore } = options;
+  const { httpServer, sessionManager, onPrompt, onCancel, onClose, onRestore, onResponse } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -60,7 +62,12 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
       const messages = parseMessages(raw);
 
       for (const msg of messages) {
-        if (!isRequest(msg)) continue;
+        if (!isRequest(msg)) {
+          if (isResponse(msg) && onResponse) {
+            onResponse(JSON.stringify(msg) + "\n");
+          }
+          continue;
+        }
         const req = msg as JsonRpcRequest;
         const method = extractMethod(req);
 
