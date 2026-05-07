@@ -77,10 +77,61 @@ Then open `http://your-machine:8765` on your phone.
 
 **Remote access**: Use [Tailscale](https://tailscale.com/), a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or an SSH tunnel to access the relay from anywhere.
 
-## Status
+## Quick Start
 
-Early development -- researching the ACP protocol and designing the relay architecture. See the `research/` directory for technical notes.
+See [quickstart.md](specs/001-acp-relay-proxy/quickstart.md) for detailed setup instructions including:
+
+- Editor configuration examples (Zed, JetBrains, VS Code)
+- Daemon mode for persistent multi-editor relay
+- Verification checklist
+- Troubleshooting tips
+
+### Editor Configuration Examples
+
+**JetBrains (IntelliJ, WebStorm, etc.)**:
+Configure in Settings > Tools > AI Agent:
+```
+Command: npx acp-mobile-relay --port 8765 --agent "npx @zed-industries/claude-code-acp"
+```
+
+**VS Code**:
+Add to `settings.json`:
+```json
+{
+  "acp.agentCommand": "npx acp-mobile-relay --port 8765 --agent 'npx @zed-industries/claude-code-acp'"
+}
+```
+
+### Daemon Mode
+
+For a persistent relay across multiple editors:
+
+```bash
+npx acp-mobile-relay --daemon --port 8765
+```
+
+Then configure each editor as above. Sessions from all editors appear in the same mobile UI.
+
+## CLI Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--agent <cmd>` | (required) | Command to spawn the downstream ACP agent |
+| `--port <port>` | `8765` | HTTP/WebSocket server port |
+| `--host <addr>` | `0.0.0.0` | Bind address |
+| `--daemon` | `false` | Run in daemon mode |
+| `--version` | | Print version |
+| `--help` | | Print help |
+
+## Development
+
+```bash
+npm install
+npm run build
+npm test
+npm run dev    # watch mode
+```
 
 ## License
 
-TBD
+MIT
