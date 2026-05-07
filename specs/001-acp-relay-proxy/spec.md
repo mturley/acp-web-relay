@@ -127,7 +127,7 @@ The developer wants their relay running persistently, independent of any single 
 - **FR-009**: The relay MUST enrich session metadata with git repository name, branch, and working directory
 - **FR-010**: The relay MUST group sessions by git repository and branch in the session picker
 - **FR-011**: The relay MUST be launchable as a single command with zero mandatory configuration beyond specifying the downstream agent command
-- **FR-012**: The relay MUST bind to all network interfaces (`0.0.0.0`) by default and expose a `--host` flag to override the bind address
+- **FR-012**: The relay MUST bind to all network interfaces (`0.0.0.0`) by default and expose a `--host` flag to override the bind address. On first startup with a non-localhost bind address, the relay MUST display a warning explaining that session data will be accessible to other devices on the network (which may include source code and credentials), and MUST prompt the user to confirm before proceeding. The warning MUST include instructions for using `--host 127.0.0.1` to restrict access to localhost only
 - **FR-013**: The relay MUST handle all sessions multiplexed by the downstream agent within a single process (one relay per editor launch)
 - **FR-014**: The relay MUST print the local network URL on startup so users can find it easily
 - **FR-015**: On each new session, the relay MUST send a synthetic prompt to the agent that includes the relay's mobile URL, phrased as the user's own statement (e.g., "This session is using acp-mobile-relay and I can access it from another device at http://192.168.1.x:8765. Repeat that URL to me."), so the agent confirms the URL in its first response

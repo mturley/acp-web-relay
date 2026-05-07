@@ -25,13 +25,13 @@ Build a transparent ACP relay proxy that sits between a code editor and an ACP a
 
 | Principle | Status | Notes |
 |-----------|--------|-------|
-| I. Transparent Proxy | ✅ Pass | All editor↔agent messages forwarded unmodified. Synthetic URL prompt is the one documented exception (FR-015). |
+| I. Transparent Proxy | ✅ Pass | All editor↔agent messages forwarded unmodified. Synthetic URL prompt is a documented exception (FR-015) with explicit carve-out in constitution v1.1.0. |
 | II. Protocol Fidelity | ✅ Pass | WebSocket API uses standard ACP JSON-RPC 2.0. Relay metadata uses `_meta` field. |
 | III. Simplicity & Scope | ✅ Pass | Session picker is the only custom UI. Chat interface delegates to bundled ACP UI. |
 | IV. Test-First | ✅ Pass | Plan includes test tasks before implementation for critical paths. |
-| V. Security by Default | ⚠️ Noted | Spec changed default bind to `0.0.0.0` (FR-012), which conflicts with constitution's "localhost default". This is a deliberate spec decision — the primary use case requires network access. Constitution should be amended to align. Auth deferred to v2. |
+| V. Security by Default | ✅ Pass | Default bind is `0.0.0.0` for the primary use case (phone access). Relay displays a security warning on first startup with non-localhost bind and prompts user to confirm before proceeding. Warning includes `--host 127.0.0.1` instructions. Auth deferred to v2. Constitution v1.1.0 aligned. |
 
-**Gate result**: PASS (one noted deviation, spec takes precedence per governance rules).
+**Gate result**: PASS (all principles aligned with constitution v1.1.0).
 
 ## Project Structure
 

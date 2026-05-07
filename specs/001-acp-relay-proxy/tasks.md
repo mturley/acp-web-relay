@@ -40,8 +40,9 @@
 - [ ] T010 [P] Create test fixtures with sample ACP messages in tests/fixtures/acp-messages.ts (initialize, session/new, session/prompt, session/update variants, session/cancel, $/ping)
 - [ ] T011 [P] Write unit tests for JSON-RPC parser in tests/unit/json-rpc.test.ts (parse valid messages, reject invalid JSON, handle multi-line chunks, extract sessionId from params)
 - [ ] T012 Implement CLI entry point in src/cli.ts using commander: parse --agent, --port, --host, --daemon, --version, --help flags per contracts/cli.md
+- [ ] T013 Implement startup security warning in src/cli.ts: when bind address is not localhost (127.0.0.1 or ::1), display a warning explaining that session data (source code, credentials) will be accessible to other devices on the network, prompt the user to confirm before proceeding, and include instructions for using `--host 127.0.0.1` to restrict access. Skip the prompt if stdin is not a TTY (e.g., when launched as an editor subprocess).
 
-**Checkpoint**: Foundation ready — JSON-RPC parsing works, types defined, CLI parses arguments
+**Checkpoint**: Foundation ready — JSON-RPC parsing works, types defined, CLI parses arguments with security warning
 
 ---
 
@@ -53,22 +54,22 @@
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Write integration test for stdio proxy forwarding in tests/integration/stdio-proxy.test.ts (verify all messages pass through unmodified between mock editor stdin/stdout and mock agent process)
-- [ ] T014 [P] [US1] Write integration test for WebSocket broadcast in tests/integration/ws-broadcast.test.ts (verify agent→editor messages are also sent to connected WebSocket clients)
+- [ ] T014 [P] [US1] Write integration test for stdio proxy forwarding in tests/integration/stdio-proxy.test.ts (verify all messages pass through unmodified between mock editor stdin/stdout and mock agent process)
+- [ ] T015 [P] [US1] Write integration test for WebSocket broadcast in tests/integration/ws-broadcast.test.ts (verify agent→editor messages are also sent to connected WebSocket clients)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement agent spawner in src/agent-spawner.ts (spawn child process from --agent command, pipe stdin/stdout, handle exit/error events, forward stderr to relay stderr)
-- [ ] T016 [US1] Implement stdio proxy in src/stdio-proxy.ts (read NDJSON from process.stdin, forward to agent stdin; read agent stdout, forward to process.stdout; use readline for line-based parsing; call message observer callback for each message in both directions)
-- [ ] T017 [US1] Implement session manager in src/session-manager.ts (track sessions by ID, update status on session/new response, session/prompt, session/update, stopReason; maintain in-memory message buffer per session; expose session list with status)
-- [ ] T018 [US1] Write unit tests for session manager in tests/unit/session-manager.test.ts (create session on session/new, track status transitions idle→working→idle, buffer messages, replay buffered messages)
-- [ ] T019 [US1] Implement WebSocket server in src/ws-server.ts (create ws.WebSocketServer, accept connections, handle initialize request with relay capabilities response, handle session/list by querying session manager, handle session/load by replaying buffered messages, broadcast session/update notifications to all connected clients, send $/ping heartbeat every 25 seconds)
-- [ ] T020 [US1] Implement HTTP server in src/http-server.ts (serve session picker page at /, serve ACP UI static files at /ui/*, upgrade /ws requests to WebSocket, bind to --host and --port, print local network URL on startup)
-- [ ] T021 [US1] Create session picker HTML page in ui/session-picker/index.html (mobile-friendly responsive layout, connect to relay WebSocket, call session/list, display sessions grouped by repo/branch, show session title/status/last activity, link each session to /ui/?session=<sessionId>)
-- [ ] T022 [US1] Style session picker in ui/session-picker/style.css (mobile-first responsive design, status indicators for idle/working/waiting, group headers for repo/branch)
-- [ ] T023 [US1] Implement session picker JavaScript in ui/session-picker/script.js (WebSocket connection to relay, initialize handshake, session/list request, DOM rendering, auto-refresh on session/update notifications, empty state when no sessions)
-- [ ] T024 [US1] Implement relay orchestrator in src/relay.ts (wire together cli args → agent-spawner → stdio-proxy → session-manager → ws-server → http-server; register message observer that feeds session-manager and broadcasts to ws-server; handle graceful shutdown on SIGINT/SIGTERM)
-- [ ] T025 [US1] Integrate ACP UI web build into ui/acp-ui/ (add @anthropic-ai/acp-ui or vendor the built web assets, configure http-server to serve them at /ui/*)
+- [ ] T016 [US1] Implement agent spawner in src/agent-spawner.ts (spawn child process from --agent command, pipe stdin/stdout, handle exit/error events, forward stderr to relay stderr)
+- [ ] T017 [US1] Implement stdio proxy in src/stdio-proxy.ts (read NDJSON from process.stdin, forward to agent stdin; read agent stdout, forward to process.stdout; use readline for line-based parsing; call message observer callback for each message in both directions)
+- [ ] T018 [US1] Implement session manager in src/session-manager.ts (track sessions by ID, update status on session/new response, session/prompt, session/update, stopReason; maintain in-memory message buffer per session; expose session list with status)
+- [ ] T019 [US1] Write unit tests for session manager in tests/unit/session-manager.test.ts (create session on session/new, track status transitions idle→working→idle, buffer messages, replay buffered messages)
+- [ ] T020 [US1] Implement WebSocket server in src/ws-server.ts (create ws.WebSocketServer, accept connections, handle initialize request with relay capabilities response, handle session/list by querying session manager, handle session/load by replaying buffered messages, broadcast session/update notifications to all connected clients, send $/ping heartbeat every 25 seconds)
+- [ ] T021 [US1] Implement HTTP server in src/http-server.ts (serve session picker page at /, serve ACP UI static files at /ui/*, upgrade /ws requests to WebSocket, bind to --host and --port, print local network URL on startup)
+- [ ] T022 [US1] Create session picker HTML page in ui/session-picker/index.html (mobile-friendly responsive layout, connect to relay WebSocket, call session/list, display sessions grouped by repo/branch, show session title/status/last activity, link each session to /ui/?session=<sessionId>)
+- [ ] T023 [US1] Style session picker in ui/session-picker/style.css (mobile-first responsive design, status indicators for idle/working/waiting, group headers for repo/branch)
+- [ ] T024 [US1] Implement session picker JavaScript in ui/session-picker/script.js (WebSocket connection to relay, initialize handshake, session/list request, DOM rendering, auto-refresh on session/update notifications, empty state when no sessions)
+- [ ] T025 [US1] Implement relay orchestrator in src/relay.ts (wire together cli args → agent-spawner → stdio-proxy → session-manager → ws-server → http-server; register message observer that feeds session-manager and broadcasts to ws-server; handle graceful shutdown on SIGINT/SIGTERM)
+- [ ] T026 [US1] Integrate ACP UI web build into ui/acp-ui/ (add @anthropic-ai/acp-ui or vendor the built web assets, configure http-server to serve them at /ui/*)
 
 **Checkpoint**: User Story 1 fully functional — editor↔agent proxy works, phone sees live sessions and streaming updates
 
@@ -82,14 +83,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T026 [P] [US2] Write unit tests for prompt queue in tests/unit/prompt-queue.test.ts (accept prompt when idle, reject when busy, queue synthetic prompt, release queued prompt after synthetic completes)
+- [ ] T027 [P] [US2] Write unit tests for prompt queue in tests/unit/prompt-queue.test.ts (accept prompt when idle, reject when busy, queue synthetic prompt, release queued prompt after synthetic completes)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Implement prompt queue in src/prompt-queue.ts (track per-session prompt state: idle/busy; reject mobile prompts when busy with error code -32000; queue user's first prompt behind synthetic URL prompt; release queue on stopReason end_turn)
-- [ ] T028 [US2] Add synthetic URL prompt injection to src/relay.ts (on session/new response, send synthetic prompt to agent: "This session is using acp-mobile-relay and I can access it from another device at http://<host>:<port>. Repeat that URL to me."; queue any real prompt until synthetic completes)
-- [ ] T029 [US2] Add session/prompt handling to src/ws-server.ts (receive prompt from WebSocket client, validate session exists and is idle via prompt-queue, forward to agent via stdio-proxy, broadcast resulting session/update notifications to all clients including the editor)
-- [ ] T030 [US2] Forward mobile-originated session/update notifications to editor stdout in src/stdio-proxy.ts (when agent responds to a mobile prompt, the editor must see the updates too)
+- [ ] T028 [US2] Implement prompt queue in src/prompt-queue.ts (track per-session prompt state: idle/busy; reject mobile prompts when busy with error code -32000; queue user's first prompt behind synthetic URL prompt; release queue on stopReason end_turn)
+- [ ] T029 [US2] Add synthetic URL prompt injection to src/relay.ts (on session/new response, send synthetic prompt to agent: "This session is using acp-mobile-relay and I can access it from another device at http://<host>:<port>. Repeat that URL to me."; queue any real prompt until synthetic completes)
+- [ ] T030 [US2] Add session/prompt handling to src/ws-server.ts (receive prompt from WebSocket client, validate session exists and is idle via prompt-queue, forward to agent via stdio-proxy, broadcast resulting session/update notifications to all clients including the editor)
+- [ ] T031 [US2] Forward mobile-originated session/update notifications to editor stdout in src/stdio-proxy.ts (when agent responds to a mobile prompt, the editor must see the updates too)
 
 **Checkpoint**: User Stories 1 AND 2 work — phone can send prompts, editor and phone both see responses
 
@@ -103,10 +104,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T031 [P] [US3] Implement git metadata extraction in src/git-meta.ts (given a cwd, run `git rev-parse --show-toplevel`, `git rev-parse --abbrev-ref HEAD`, `git config --get remote.origin.url`; parse repo name from remote URL or directory name; return GitMeta object; handle non-git directories gracefully)
-- [ ] T032 [P] [US3] Write unit tests for git metadata extraction in tests/unit/git-meta.test.ts (extract from valid git repo, handle missing remote, handle non-git directory, parse repo name from various remote URL formats)
-- [ ] T033 [US3] Integrate git metadata into session manager in src/session-manager.ts (on session/new, extract cwd from params, call git-meta, attach GitMeta to RelaySession; include _meta.relay.git in session/list responses)
-- [ ] T034 [US3] Update session picker to group by repo/branch in ui/session-picker/script.js (group sessions by gitMeta.repoName, show branch as subgroup, sort by updatedAt within groups)
+- [ ] T032 [P] [US3] Implement git metadata extraction in src/git-meta.ts (given a cwd, run `git rev-parse --show-toplevel`, `git rev-parse --abbrev-ref HEAD`, `git config --get remote.origin.url`; parse repo name from remote URL or directory name; return GitMeta object; handle non-git directories gracefully)
+- [ ] T033 [P] [US3] Write unit tests for git metadata extraction in tests/unit/git-meta.test.ts (extract from valid git repo, handle missing remote, handle non-git directory, parse repo name from various remote URL formats)
+- [ ] T034 [US3] Integrate git metadata into session manager in src/session-manager.ts (on session/new, extract cwd from params, call git-meta, attach GitMeta to RelaySession; include _meta.relay.git in session/list responses)
+- [ ] T035 [US3] Update session picker to group by repo/branch in ui/session-picker/script.js (group sessions by gitMeta.repoName, show branch as subgroup, sort by updatedAt within groups)
 
 **Checkpoint**: All sessions grouped by repo and branch in the session picker
 
@@ -120,8 +121,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T035 [US4] Add session/cancel handling to src/ws-server.ts (receive cancel from WebSocket client, forward as session/cancel notification to agent via stdio-proxy, update session status to idle)
-- [ ] T036 [US4] Update session picker to show cancel button in ui/session-picker/script.js (show cancel button when session status is working, disable when idle, send session/cancel on tap)
+- [ ] T036 [US4] Add session/cancel handling to src/ws-server.ts (receive cancel from WebSocket client, forward as session/cancel notification to agent via stdio-proxy, update session status to idle)
+- [ ] T037 [US4] Update session picker to show cancel button in ui/session-picker/script.js (show cancel button when session status is working, disable when idle, send session/cancel on tap)
 
 **Checkpoint**: Cancel works from phone — agent stops, both phone and editor show cancelled state
 
@@ -135,14 +136,14 @@
 
 ### Tests for User Story 5
 
-- [ ] T037 [P] [US5] Write integration test for daemon IPC in tests/integration/daemon-ipc.test.ts (daemon accepts socket connections, subprocess pipes stdin/stdout through socket, daemon cleans up on disconnect)
+- [ ] T038 [P] [US5] Write integration test for daemon IPC in tests/integration/daemon-ipc.test.ts (daemon accepts socket connections, subprocess pipes stdin/stdout through socket, daemon cleans up on disconnect)
 
 ### Implementation for User Story 5
 
-- [ ] T038 [US5] Implement daemon IPC server in src/daemon.ts (create net.createServer on Unix socket ~/.acp-mobile-relay/daemon.sock or Windows named pipe; accept connections from editor subprocesses; track connected pipes as EditorPipe entities; spawn agent process per connected pipe; clean up sessions when pipe disconnects)
-- [ ] T039 [US5] Implement daemon IPC client in src/daemon.ts (on subprocess startup without --daemon, try net.createConnection to daemon socket; if connected, pipe process.stdin→socket and socket→process.stdout; if ENOENT/ECONNREFUSED, fall back to standalone subprocess mode)
-- [ ] T040 [US5] Integrate daemon mode into relay orchestrator in src/relay.ts (if --daemon flag, start daemon server + HTTP/WS server without spawning agent; if no --daemon, try daemon client first, fall back to standalone; wire daemon pipe sessions into session manager)
-- [ ] T041 [US5] Handle daemon shutdown gracefully in src/daemon.ts (on daemon exit, connected subprocesses continue as direct stdio passthroughs to their agent processes — degraded mode with no mobile UI)
+- [ ] T039 [US5] Implement daemon IPC server in src/daemon.ts (create net.createServer on Unix socket ~/.acp-mobile-relay/daemon.sock or Windows named pipe; accept connections from editor subprocesses; track connected pipes as EditorPipe entities; spawn agent process per connected pipe; clean up sessions when pipe disconnects)
+- [ ] T040 [US5] Implement daemon IPC client in src/daemon.ts (on subprocess startup without --daemon, try net.createConnection to daemon socket; if connected, pipe process.stdin→socket and socket→process.stdout; if ENOENT/ECONNREFUSED, fall back to standalone subprocess mode)
+- [ ] T041 [US5] Integrate daemon mode into relay orchestrator in src/relay.ts (if --daemon flag, start daemon server + HTTP/WS server without spawning agent; if no --daemon, try daemon client first, fall back to standalone; wire daemon pipe sessions into session manager)
+- [ ] T042 [US5] Handle daemon shutdown gracefully in src/daemon.ts (on daemon exit, connected subprocesses continue as direct stdio passthroughs to their agent processes — degraded mode with no mobile UI)
 
 **Checkpoint**: Daemon mode works — multiple editors feed into one relay, sessions aggregate in mobile UI
 
@@ -152,11 +153,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T042 [P] Add .gitignore entries for node_modules/, dist/, *.tsbuildinfo
-- [ ] T043 [P] Write README.md setup instructions pointing to quickstart.md patterns (editor config examples for Zed, JetBrains, VS Code)
-- [ ] T044 [P] Add error handling for agent process crash in src/agent-spawner.ts (detect unexpected exit, notify connected mobile clients, update session status)
-- [ ] T045 [P] Add reconnection handling in src/ws-server.ts (mobile client disconnect → clean up; reconnect → re-initialize + session/load with buffered replay)
-- [ ] T046 Run quickstart.md verification checklist end-to-end
+- [ ] T043 [P] Add .gitignore entries for node_modules/, dist/, *.tsbuildinfo
+- [ ] T044 [P] Write README.md setup instructions pointing to quickstart.md patterns (editor config examples for Zed, JetBrains, VS Code)
+- [ ] T045 [P] Add error handling for agent process crash in src/agent-spawner.ts (detect unexpected exit, notify connected mobile clients, update session status)
+- [ ] T046 [P] Add reconnection handling in src/ws-server.ts (mobile client disconnect → clean up; reconnect → re-initialize + session/load with buffered replay)
+- [ ] T047 Run quickstart.md verification checklist end-to-end
 
 ---
 
@@ -193,9 +194,9 @@
 
 - T004, T005, T006 (Setup config files)
 - T009, T010, T011 (Foundational: parser + fixtures + tests)
-- T013, T014 (US1 tests)
-- T031, T032 (US3: git-meta + tests)
-- T042, T043, T044, T045 (Polish tasks)
+- T014, T015 (US1 tests)
+- T032, T033 (US3: git-meta + tests)
+- T043, T044, T045, T046 (Polish tasks)
 - US3, US4, US5 can run in parallel after US1 completes
 
 ---
