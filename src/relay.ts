@@ -57,6 +57,14 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       pendingAgentRequests.set((parsed as any).id, pipeId);
     }
 
+    if (direction === "editor→agent" && isResponse(parsed)) {
+      const id = (parsed as any).id;
+      if (pendingAgentRequests.has(id)) {
+        pendingAgentRequests.delete(id);
+        wsHandle.broadcast(line + "\n");
+      }
+    }
+
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);

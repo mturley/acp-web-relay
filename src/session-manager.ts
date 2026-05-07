@@ -69,6 +69,8 @@ export class SessionManager {
     const method = extractMethod(parsed);
     const now = new Date().toISOString();
 
+    if (method === "session/request_permission") return;
+
     if (method === "session/prompt" && isRequest(parsed)) {
       const promptText = this.extractPromptText(parsed);
       if (promptText) {
