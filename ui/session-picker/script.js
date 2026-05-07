@@ -55,6 +55,7 @@
       sessions = msg.result.sessions;
       render();
       updateBadge();
+      restoreSessionFromHash();
       return;
     }
 
@@ -141,12 +142,32 @@
     localStorage.setItem("acp-ui:sessions.json", JSON.stringify({ sessions: savedSessions }));
   }
 
+  function updateUrl() {
+    const params = new URLSearchParams();
+    if (archivedOpen) params.set("archived", "1");
+    const query = params.toString();
+    const hash = activeSessionId ? `#${encodeURIComponent(activeSessionId)}` : "";
+    const url = location.pathname + (query ? `?${query}` : "") + hash;
+    history.replaceState(null, "", url);
+  }
+
+  let archivedOpen = new URLSearchParams(location.search).get("archived") === "1";
+
+  function restoreSessionFromHash() {
+    if (activeSessionId) return;
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash && sessions.some((s) => s.sessionId === hash && !s.archived)) {
+      openSession(hash);
+    }
+  }
+
   function openSession(sessionId) {
     const session = sessions.find((s) => s.sessionId === sessionId);
     if (!session) return;
 
     activeSessionId = sessionId;
     configureAcpUi(session);
+    updateUrl();
 
     const frame = document.getElementById("session-frame");
     const welcome = document.getElementById("welcome");
@@ -163,6 +184,7 @@
 
     if (activeSessionId === sessionId) {
       activeSessionId = null;
+      updateUrl();
       const frame = document.getElementById("session-frame");
       const welcome = document.getElementById("welcome");
       frame.src = "about:blank";
@@ -233,7 +255,7 @@
     }
 
     if (archivedSessions.length > 0) {
-      html += `<details class="archived-section">`;
+      html += `<details class="archived-section"${archivedOpen ? " open" : ""}>`;
       html += `<summary class="archived-header">Archived (${archivedSessions.length})</summary>`;
       const groups = groupSessions(archivedSessions);
       for (const [groupName, groupSessions] of Object.entries(groups)) {
@@ -248,6 +270,14 @@
     }
 
     container.innerHTML = html;
+
+    const details = container.querySelector(".archived-section");
+    if (details) {
+      details.addEventListener("toggle", () => {
+        archivedOpen = details.open;
+        updateUrl();
+      });
+    }
   }
 
   function escapeHtml(str) {
