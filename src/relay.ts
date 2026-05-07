@@ -72,13 +72,16 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
-    if (isResponse(parsed) && sessionId) {
-      const session = sessionManager.getSession(sessionId);
-      if (session && !session.gitMeta && session.cwd) {
-        extractGitMeta(session.cwd).then((meta) => {
-          if (meta) sessionManager.setGitMeta(sessionId, meta);
-        }).catch(() => {});
+    if (isResponse(parsed)) {
+      if (sessionId) {
+        const session = sessionManager.getSession(sessionId);
+        if (session && !session.gitMeta && session.cwd) {
+          extractGitMeta(session.cwd).then((meta) => {
+            if (meta) sessionManager.setGitMeta(sessionId, meta);
+          }).catch(() => {});
+        }
       }
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
     wsHandle.broadcast(line + "\n");
@@ -114,6 +117,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         parseMessage(promptReq.trim())!,
         pipe.id,
       );
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
     onCancel: (sessionId) => {
       const pipe = findPipeForSession(sessionId);
