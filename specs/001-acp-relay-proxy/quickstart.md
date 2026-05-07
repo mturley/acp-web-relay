@@ -4,7 +4,7 @@
 
 - Node.js 18+ installed
 - An ACP-compatible editor (Zed, JetBrains, VS Code, Neovim)
-- An ACP agent installed (e.g., `npx @zed-industries/claude-code-acp`)
+- An ACP agent installed (e.g., `npx @agentclientprotocol/claude-agent-acp`)
 - Phone on the same WiFi network as your development machine
 
 ## Setup (2 minutes)
@@ -22,7 +22,7 @@ Add the relay as a custom agent. In Zed's `settings.json`:
       "args": [
         "acp-mobile-relay",
         "--port", "8765",
-        "--agent", "npx @zed-industries/claude-code-acp"
+        "--agent", "npx @agentclientprotocol/claude-agent-acp"
       ]
     }
   }
@@ -73,7 +73,7 @@ from all editors appear in the same mobile UI.
 - Try `--host 0.0.0.0` explicitly (though this is the default)
 
 **Agent doesn't start?**
-- Verify the agent command works directly: `npx @zed-industries/claude-code-acp`
+- Verify the agent command works directly: `npx @agentclientprotocol/claude-agent-acp`
 - Check stderr output in the editor's agent logs
 
 **Port already in use?**

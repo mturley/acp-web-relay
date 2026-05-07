@@ -53,7 +53,7 @@ Configure the relay as a custom agent in your editor. For example, in Zed's `set
     "Claude (Mobile)": {
       "type": "custom",
       "command": "npx",
-      "args": ["acp-mobile-relay", "--port", "8765", "--agent", "npx @zed-industries/claude-code-acp"]
+      "args": ["acp-mobile-relay", "--port", "8765", "--agent", "npx @agentclientprotocol/claude-agent-acp"]
     }
   }
 }
@@ -91,14 +91,14 @@ See [quickstart.md](specs/001-acp-relay-proxy/quickstart.md) for detailed setup 
 **JetBrains (IntelliJ, WebStorm, etc.)**:
 Configure in Settings > Tools > AI Agent:
 ```
-Command: npx acp-mobile-relay --port 8765 --agent "npx @zed-industries/claude-code-acp"
+Command: npx acp-mobile-relay --port 8765 --agent "npx @agentclientprotocol/claude-agent-acp"
 ```
 
 **VS Code**:
 Add to `settings.json`:
 ```json
 {
-  "acp.agentCommand": "npx acp-mobile-relay --port 8765 --agent 'npx @zed-industries/claude-code-acp'"
+  "acp.agentCommand": "npx acp-mobile-relay --port 8765 --agent 'npx @agentclientprotocol/claude-agent-acp'"
 }
 ```
 

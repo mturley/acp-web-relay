@@ -81,7 +81,7 @@ export async function parseArgs(argv: string[]): Promise<CliOptions | null> {
     console.error(
       "Error: --agent <cmd> is required in subprocess mode.\n" +
         "Use --daemon for daemon mode, or specify an agent command.\n" +
-        "Example: acp-mobile-relay --agent 'npx @zed-industries/claude-code-acp'",
+        "Example: acp-mobile-relay --agent 'npx @agentclientprotocol/claude-agent-acp'",
     );
     return null;
   }
