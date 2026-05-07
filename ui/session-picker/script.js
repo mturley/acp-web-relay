@@ -138,7 +138,7 @@
       cwd: session.cwd || "/",
       supportsLoadSession: true,
     }];
-    localStorage.setItem("acp-ui:sessions", JSON.stringify(savedSessions));
+    localStorage.setItem("acp-ui:sessions.json", JSON.stringify({ sessions: savedSessions }));
   }
 
   function openSession(sessionId) {

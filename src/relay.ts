@@ -153,6 +153,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
       sessionManager.removeSessionsBySource(pipeId);
+      wsHandle.broadcast(createNotification("session/update", { type: "session_removed" }));
     },
   });
 
