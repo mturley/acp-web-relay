@@ -137,6 +137,16 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       );
       promptQueue.markIdle(sessionId);
     },
+    onClose: (sessionId) => {
+      const pipe = findPipeForSession(sessionId);
+      if (!pipe) return;
+
+      log(`[${pipe.id}] Web close → session ${sessionId}`);
+      if (pipe.agentProc && !pipe.agentProc.killed) {
+        pipe.agentProc.kill();
+      }
+      pipe.socket.end();
+    },
   });
 
   const daemonServer = await startDaemonServer({

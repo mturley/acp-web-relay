@@ -18,6 +18,7 @@ export interface WsServerOptions {
   sessionManager: SessionManager;
   onPrompt?: (sessionId: string, prompt: unknown, requestId: number | string) => void;
   onCancel?: (sessionId: string) => void;
+  onClose?: (sessionId: string) => void;
 }
 
 export interface WsServerHandle {
@@ -26,7 +27,7 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, onPrompt, onCancel } = options;
+  const { httpServer, sessionManager, onPrompt, onCancel, onClose } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -133,6 +134,14 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
           const sessionId = (req.params as Record<string, unknown>)?.sessionId as string;
           if (sessionId && onCancel) {
             onCancel(sessionId);
+          }
+          continue;
+        }
+
+        if (method === "session/close") {
+          const sessionId = (req.params as Record<string, unknown>)?.sessionId as string;
+          if (sessionId && onClose) {
+            onClose(sessionId);
           }
           continue;
         }

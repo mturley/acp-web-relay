@@ -7,18 +7,32 @@
   <link rel="stylesheet" href="/session-picker/style.css">
 </head>
 <body>
-  <header>
-    <button id="back-btn" class="back-btn" style="display: none;">&larr;</button>
-    <h1>ACP Relay</h1>
-    <div id="connection-status" class="status-dot disconnected" title="Disconnected"></div>
-  </header>
-  <main id="sessions-container">
-    <div id="empty-state" class="empty-state">
-      <p>No active sessions</p>
-      <p class="hint">Start an agent session in your editor to see it here.</p>
+  <div class="app">
+    <header>
+      <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle session list">
+        <span class="hamburger-icon">&#9776;</span>
+        <span id="session-badge" class="session-badge" style="display: none;">0</span>
+      </button>
+      <h1>ACP Web Relay</h1>
+      <div id="connection-status" class="status-dot disconnected" title="Disconnected"></div>
+    </header>
+    <div class="content">
+      <aside id="sidebar" class="sidebar">
+        <div id="sessions-container">
+          <div id="empty-state" class="empty-state">
+            <p>No active sessions</p>
+            <p class="hint">Start an agent session in your editor to see it here.</p>
+          </div>
+        </div>
+      </aside>
+      <main id="main-area" class="main-area">
+        <div id="welcome" class="welcome">
+          <p>Select a session to view it.</p>
+        </div>
+        <iframe id="session-frame" class="session-frame"></iframe>
+      </main>
     </div>
-  </main>
-  <iframe id="session-frame" class="session-frame" style="display: none;"></iframe>
+  </div>
   <script src="/session-picker/script.js"></script>
 </body>
 </html>

@@ -8,6 +8,10 @@ A transparent ACP relay proxy with a web UI. See README.md for the overview.
 - `research/02-relay-architecture.md` — Relay design, comparison with existing tools, implementation phases, open questions
 - `research/03-websocket-protocol.md` — ACP-over-WebSocket wire format, connection lifecycle, session multiplexing
 
+## Design Decisions
+
+- **Do NOT build a custom agent/chat interface.** We use ACP UI (git submodule) for the chat interface. Building our own would be difficult to maintain. If ACP UI lacks a feature we need (like auto-loading a session by ID), contribute upstream or work around it — don't reimplement the chat UI.
+
 ## Tech Stack
 
 - TypeScript / Node.js
