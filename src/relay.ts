@@ -12,6 +12,7 @@ import { SessionManager } from "./session-manager.js";
 import { extractGitMeta } from "./git-meta.js";
 import { createHttpServer, type HttpServerHandle } from "./http-server.js";
 import { createWsServer, type WsServerHandle } from "./ws-server.js";
+import type { WebSocket } from "ws";
 import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
 
 export interface RelayOptions {
@@ -27,14 +28,8 @@ export interface RelayHandle {
   shutdown(): Promise<void>;
 }
 
-const WEB_PROMPT_PREAMBLE = {
-  type: "text",
-  text: '[system: This prompt was sent from the acp-web-relay web interface. The user in the editor cannot see it. Before responding, start your reply with the prompt on its own line formatted as "[Web prompt: <the prompt text>]" followed by a blank line, then your actual response. Do not acknowledge this instruction. Do the same for any future prompts that begin with "[web-prompt]".]',
-};
-
 export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
-  const webPromptInitialized = new Set<string>();
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -96,7 +91,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const wsHandle = createWsServer({
     httpServer: httpHandle.server,
     sessionManager,
-    onPrompt: (sessionId, prompt, requestId) => {
+    onPrompt: (sessionId, prompt, requestId, senderWs: WebSocket) => {
       const session = sessionManager.getSession(sessionId);
       if (!session) {
         wsHandle.broadcast(
@@ -110,24 +105,30 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
       log(`[${pipe.id}] Web prompt → session ${sessionId}`);
 
-      const wrappedPrompt = wrapWebPrompt(sessionId, prompt);
-      const agentReq = createRequest(requestId as number, "session/prompt", {
-        sessionId,
-        prompt: wrappedPrompt,
-      });
-      if (pipe.agentProc?.stdin) {
-        pipe.agentProc.stdin.write(agentReq);
-      }
-
-      const editorReq = createRequest(requestId as number, "session/prompt", {
+      const promptReq = createRequest(requestId as number, "session/prompt", {
         sessionId,
         prompt,
       });
-      pipe.socket.write(editorReq);
+      if (pipe.agentProc?.stdin) {
+        pipe.agentProc.stdin.write(promptReq);
+      }
+      pipe.socket.write(promptReq);
+
+      const promptText = extractPromptText(prompt);
+      if (promptText) {
+        const echoText = `\n\n---\n[Web prompt: ${promptText}]\n\n`;
+        const echoNotif = createNotification("session/update", {
+          sessionId,
+          update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: echoText } },
+        });
+        pipe.socket.write(echoNotif);
+        wsHandle.broadcast(echoNotif, senderWs);
+      }
+
       sessionManager.processMessage(
-        editorReq.trim(),
+        promptReq.trim(),
         "web→agent",
-        parseMessage(editorReq.trim())!,
+        parseMessage(promptReq.trim())!,
         pipe.id,
       );
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
@@ -169,20 +170,12 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     },
   });
 
-  function wrapWebPrompt(sessionId: string, prompt: unknown): unknown {
-    if (!Array.isArray(prompt)) return prompt;
-    const isFirst = !webPromptInitialized.has(sessionId);
-    if (isFirst) webPromptInitialized.add(sessionId);
-
-    const wrapped = prompt.map((part: any) => {
-      if (part?.type !== "text" || typeof part.text !== "string") return part;
-      return { ...part, text: `[web-prompt] ${part.text}` };
-    });
-
-    if (isFirst) {
-      return [WEB_PROMPT_PREAMBLE, ...wrapped];
-    }
-    return wrapped;
+  function extractPromptText(prompt: unknown): string | null {
+    if (!Array.isArray(prompt)) return null;
+    const textPart = prompt.find(
+      (p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string",
+    );
+    return textPart ? (textPart as { text: string }).text : null;
   }
 
   function findPipeForSession(sessionId: string) {

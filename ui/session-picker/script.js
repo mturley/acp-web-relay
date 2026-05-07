@@ -153,7 +153,7 @@
 
     welcome.style.display = "none";
     frame.style.display = "block";
-    frame.src = `/ui/?agent=Relay&session=${encodeURIComponent(sessionId)}&hideSidebar=true&hideWebPromptEcho=true`;
+    frame.src = `/ui/?agent=Relay&session=${encodeURIComponent(sessionId)}&hideSidebar=true`;
 
     render();
   }

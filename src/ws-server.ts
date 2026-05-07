@@ -16,14 +16,14 @@ import type { SessionManager } from "./session-manager.js";
 export interface WsServerOptions {
   httpServer: HttpServer;
   sessionManager: SessionManager;
-  onPrompt?: (sessionId: string, prompt: unknown, requestId: number | string) => void;
+  onPrompt?: (sessionId: string, prompt: unknown, requestId: number | string, senderWs: WebSocket) => void;
   onCancel?: (sessionId: string) => void;
   onClose?: (sessionId: string) => void;
   onRestore?: (sessionId: string) => void;
 }
 
 export interface WsServerHandle {
-  broadcast(data: string): void;
+  broadcast(data: string, exclude?: WebSocket): void;
   stop(): void;
 }
 
@@ -126,7 +126,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
           const params = req.params as Record<string, unknown>;
           const sessionId = params?.sessionId as string;
           if (req.id !== undefined && onPrompt) {
-            onPrompt(sessionId, params?.prompt, req.id);
+            onPrompt(sessionId, params?.prompt, req.id, ws);
           }
           continue;
         }
@@ -177,9 +177,9 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
   }, 25_000);
 
   return {
-    broadcast(data: string) {
+    broadcast(data: string, exclude?: WebSocket) {
       for (const client of clients.values()) {
-        if (client.ws.readyState === WebSocket.OPEN) {
+        if (client.ws.readyState === WebSocket.OPEN && client.ws !== exclude) {
           client.ws.send(data);
         }
       }
