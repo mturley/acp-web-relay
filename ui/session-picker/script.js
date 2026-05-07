@@ -58,11 +58,7 @@
       return;
     }
 
-    if (msg.method === "session/update") {
-      if (suppressNextRefresh) {
-        suppressNextRefresh = false;
-        return;
-      }
+    if (msg.method === "relay/sessions_changed") {
       send("session/list", {});
       return;
     }
@@ -162,13 +158,9 @@
     render();
   }
 
-  let suppressNextRefresh = false;
-
   function archiveSession(sessionId) {
     if (!confirm("Archive this session? It will be hidden from the active list.")) return;
-
-    const s = sessions.find((s) => s.sessionId === sessionId);
-    if (s) s.archived = true;
+    send("session/close", { sessionId });
 
     if (activeSessionId === sessionId) {
       activeSessionId = null;
@@ -178,20 +170,9 @@
       frame.style.display = "none";
       welcome.style.display = "flex";
     }
-
-    render();
-    updateBadge();
-    suppressNextRefresh = true;
-    send("session/close", { sessionId });
   }
 
   function restoreSession(sessionId) {
-    const s = sessions.find((s) => s.sessionId === sessionId);
-    if (s) s.archived = false;
-
-    render();
-    updateBadge();
-    suppressNextRefresh = true;
     send("session/restore", { sessionId });
   }
 

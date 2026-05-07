@@ -53,7 +53,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
-      wsHandle.broadcast(createNotification("session/update", { type: "session_created" }));
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
     if (direction === "editor→agent" && method === "session/prompt" && sessionId) {
@@ -69,6 +69,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
           }
         }
       }
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
     if (isResponse(parsed) && sessionId) {
@@ -134,12 +135,12 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onClose: (sessionId) => {
       log(`Web archive → session ${sessionId}`);
       sessionManager.archiveSession(sessionId);
-      wsHandle.broadcast(createNotification("session/update", { type: "session_archived" }));
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
     onRestore: (sessionId) => {
       log(`Web restore → session ${sessionId}`);
       sessionManager.unarchiveSession(sessionId);
-      wsHandle.broadcast(createNotification("session/update", { type: "session_restored" }));
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
   });
 
@@ -147,7 +148,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
       sessionManager.removeSessionsBySource(pipeId);
-      wsHandle.broadcast(createNotification("session/update", { type: "session_removed" }));
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
     },
   });
 
