@@ -1,4 +1,4 @@
-# WebSocket API Contract: acp-mobile-relay
+# WebSocket API Contract: acp-web-relay
 
 ## Connection
 
@@ -42,7 +42,7 @@ Response includes relay capabilities:
   "jsonrpc": "2.0", "id": 1,
   "result": {
     "protocolVersion": 1,
-    "agentInfo": { "name": "acp-mobile-relay", "version": "1.0.0" },
+    "agentInfo": { "name": "acp-web-relay", "version": "1.0.0" },
     "capabilities": {
       "loadSession": true,
       "sessionCapabilities": { "list": true, "resume": true, "close": true }

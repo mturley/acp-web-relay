@@ -17,7 +17,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Initialize npm project with package.json (`npm init`), set `"type": "module"`, add `"bin": { "acp-mobile-relay": "./dist/cli.js" }`
+- [x] T001 Initialize npm project with package.json (`npm init`), set `"type": "module"`, add `"bin": { "acp-web-relay": "./dist/cli.js" }`
 - [x] T002 Install dev dependencies: typescript, vitest, @types/node, @types/ws
 - [x] T003 Install runtime dependencies: ws, commander
 - [x] T004 [P] Create tsconfig.json with strict mode, ES2022 target, NodeNext module resolution, outDir: dist/
@@ -88,7 +88,7 @@
 ### Implementation for User Story 2
 
 - [x] T028 [US2] Implement prompt queue in src/prompt-queue.ts (track per-session prompt state: idle/busy; reject mobile prompts when busy with error code -32000; queue user's first prompt behind synthetic URL prompt; release queue on stopReason end_turn)
-- [x] T029 [US2] Add synthetic URL prompt injection to src/relay.ts (on session/new response, send synthetic prompt to agent: "This session is using acp-mobile-relay and I can access it from another device at http://<host>:<port>. Repeat that URL to me."; queue any real prompt until synthetic completes)
+- [x] T029 [US2] Add synthetic URL prompt injection to src/relay.ts (on session/new response, send synthetic prompt to agent: "This session is using acp-web-relay and I can access it from another device at http://<host>:<port>. Repeat that URL to me."; queue any real prompt until synthetic completes)
 - [x] T030 [US2] Add session/prompt handling to src/ws-server.ts (receive prompt from WebSocket client, validate session exists and is idle via prompt-queue, forward to agent via stdio-proxy, broadcast resulting session/update notifications to all clients including the editor)
 - [x] T031 [US2] Forward mobile-originated session/update notifications to editor stdout in src/stdio-proxy.ts (when agent responds to a mobile prompt, the editor must see the updates too)
 
@@ -140,7 +140,7 @@
 
 ### Implementation for User Story 5
 
-- [x] T039 [US5] Implement daemon IPC server in src/daemon.ts (create net.createServer on Unix socket ~/.acp-mobile-relay/daemon.sock or Windows named pipe; accept connections from editor subprocesses; track connected pipes as EditorPipe entities; spawn agent process per connected pipe; clean up sessions when pipe disconnects)
+- [x] T039 [US5] Implement daemon IPC server in src/daemon.ts (create net.createServer on Unix socket ~/.acp-web-relay/daemon.sock or Windows named pipe; accept connections from editor subprocesses; track connected pipes as EditorPipe entities; spawn agent process per connected pipe; clean up sessions when pipe disconnects)
 - [x] T040 [US5] Implement daemon IPC client in src/daemon.ts (on subprocess startup without --daemon, try net.createConnection to daemon socket; if connected, pipe process.stdin→socket and socket→process.stdout; if ENOENT/ECONNREFUSED, fall back to standalone subprocess mode)
 - [x] T041 [US5] Integrate daemon mode into relay orchestrator in src/relay.ts (if --daemon flag, start daemon server + HTTP/WS server without spawning agent; if no --daemon, try daemon client first, fall back to standalone; wire daemon pipe sessions into session manager)
 - [x] T042 [US5] Handle daemon shutdown gracefully in src/daemon.ts (on daemon exit, connected subprocesses continue as direct stdio passthroughs to their agent processes — degraded mode with no mobile UI)

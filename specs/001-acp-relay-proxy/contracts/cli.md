@@ -1,11 +1,11 @@
-# CLI Contract: acp-mobile-relay
+# CLI Contract: acp-web-relay
 
 ## Installation
 
 ```bash
-npm install -g acp-mobile-relay
+npm install -g acp-web-relay
 # or
-npx acp-mobile-relay [options]
+npx acp-web-relay [options]
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ npx acp-mobile-relay [options]
 ### Subprocess Mode (default)
 
 ```bash
-acp-mobile-relay --agent <command> [--port <port>] [--host <address>]
+acp-web-relay --agent <command> [--port <port>] [--host <address>]
 ```
 
 The editor launches this as a subprocess. The relay:
@@ -24,7 +24,7 @@ The editor launches this as a subprocess. The relay:
 ### Daemon Mode
 
 ```bash
-acp-mobile-relay --daemon [--port <port>] [--host <address>]
+acp-web-relay --daemon [--port <port>] [--host <address>]
 ```
 
 Starts a persistent relay server. Editor subprocesses detect the daemon

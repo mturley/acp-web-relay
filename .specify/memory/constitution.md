@@ -12,7 +12,7 @@
   Follow-up TODOs: none
 -->
 
-# acp-mobile-relay Constitution
+# acp-web-relay Constitution
 
 ## Core Principles
 
@@ -95,7 +95,7 @@ Informed consent replaces forced restriction.
 
 ## Deployment & Distribution
 
-The relay MUST be installable and runnable via `npx acp-mobile-relay`
+The relay MUST be installable and runnable via `npx acp-web-relay`
 with zero configuration beyond specifying the downstream agent
 command. TypeScript compiled to JavaScript, distributed as an npm
 package. No native dependencies that would prevent cross-platform
@@ -113,7 +113,7 @@ use on macOS, Linux, or Windows.
 ## Governance
 
 This constitution governs all design and implementation decisions
-for acp-mobile-relay. Amendments require:
+for acp-web-relay. Amendments require:
 
 1. A documented rationale for the change
 2. Review of impact on existing implementation

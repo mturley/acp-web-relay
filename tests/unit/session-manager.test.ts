@@ -103,7 +103,7 @@ describe("SessionManager", () => {
       manager.processMessage(fixtures.sessionPromptRequest, "editor→agent", prompt);
 
       const cancel = parseMessage(fixtures.sessionCancelNotification)!;
-      manager.processMessage(fixtures.sessionCancelNotification, "mobile→agent", cancel);
+      manager.processMessage(fixtures.sessionCancelNotification, "web→agent", cancel);
 
       expect(manager.getSession("sess_abc123")!.status).toBe("idle");
     });

@@ -6,7 +6,7 @@ export type SessionStatus = "idle" | "working" | "waiting";
 export type MessageDirection =
   | "editor→agent"
   | "agent→editor"
-  | "mobile→agent";
+  | "web→agent";
 
 export interface GitMeta {
   repoName: string;
@@ -44,7 +44,7 @@ export interface EditorPipe {
   connectedAt: string;
 }
 
-export interface MobileClient {
+export interface WebClient {
   id: string;
   ws: WebSocket;
   connectedAt: string;

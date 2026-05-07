@@ -9,8 +9,8 @@ const pkg = require("../package.json");
 const program = new Command();
 
 program
-  .name("acp-mobile-relay")
-  .description("Transparent ACP relay proxy with mobile web UI")
+  .name("acp-web-relay")
+  .description("Transparent ACP relay proxy with web UI")
   .version(pkg.version);
 
 program

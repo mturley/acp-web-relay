@@ -1,6 +1,6 @@
-# acp-mobile-relay
+# acp-web-relay
 
-A transparent ACP relay proxy with a mobile web UI. See README.md for the overview.
+A transparent ACP relay proxy with a web UI. See README.md for the overview.
 
 ## Key Resources
 
@@ -11,8 +11,8 @@ A transparent ACP relay proxy with a mobile web UI. See README.md for the overvi
 ## Tech Stack
 
 - TypeScript / Node.js
-- npm distribution (`npx acp-mobile-relay`)
-- WebSocket server (`ws` library) for mobile/web clients
+- npm distribution (`npx acp-web-relay`)
+- WebSocket server (`ws` library) for web clients
 - ACP UI (github.com/formulahendry/acp-ui) for the chat interface — we only build the session picker
 
 ## External References

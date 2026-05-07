@@ -106,14 +106,14 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         sessionId,
         prompt,
       });
-      log(`[${pipe.id}] Mobile prompt → session ${sessionId}`);
+      log(`[${pipe.id}] Web prompt → session ${sessionId}`);
       if (pipe.agentProc?.stdin) {
         pipe.agentProc.stdin.write(promptReq);
       }
       pipe.socket.write(promptReq);
       sessionManager.processMessage(
         promptReq.trim(),
-        "mobile→agent",
+        "web→agent",
         parseMessage(promptReq.trim())!,
         pipe.id,
       );
@@ -123,7 +123,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       const pipe = findPipeForSession(sessionId);
       if (!pipe) return;
 
-      log(`[${pipe.id}] Mobile cancel → session ${sessionId}`);
+      log(`[${pipe.id}] Web cancel → session ${sessionId}`);
       const cancelNotif = createNotification("session/cancel", { sessionId });
       if (pipe.agentProc?.stdin) {
         pipe.agentProc.stdin.write(cancelNotif);
@@ -131,7 +131,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       pipe.socket.write(cancelNotif);
       sessionManager.processMessage(
         cancelNotif.trim(),
-        "mobile→agent",
+        "web→agent",
         parseMessage(cancelNotif.trim())!,
         pipe.id,
       );

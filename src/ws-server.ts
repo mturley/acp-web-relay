@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server as HttpServer } from "node:http";
-import type { MobileClient, JsonRpcRequest } from "./types.js";
+import type { WebClient, JsonRpcRequest } from "./types.js";
 import { log } from "./daemon.js";
 import {
   parseMessages,
@@ -27,7 +27,7 @@ export interface WsServerHandle {
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
   const { httpServer, sessionManager, onPrompt, onCancel } = options;
-  const clients = new Map<string, MobileClient>();
+  const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -44,13 +44,13 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
     const clientId = `client_${++clientCounter}`;
     let initialized = false;
 
-    const client: MobileClient = {
+    const client: WebClient = {
       id: clientId,
       ws,
       connectedAt: new Date().toISOString(),
     };
     clients.set(clientId, client);
-    log(`[${clientId}] Mobile client connected`);
+    log(`[${clientId}] Web client connected`);
 
     ws.on("message", (data) => {
       if (typeof data !== "string" && !(data instanceof Buffer)) return;
@@ -76,7 +76,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
           if (req.id !== undefined) {
             ws.send(createResponse(req.id, {
               protocolVersion: 1,
-              agentInfo: { name: "acp-mobile-relay", version: "1.0.0" },
+              agentInfo: { name: "acp-web-relay", version: "1.0.0" },
               capabilities: {
                 loadSession: true,
                 sessionCapabilities: { list: true, resume: true, close: true },
@@ -145,7 +145,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
 
     ws.on("close", () => {
       clients.delete(clientId);
-      log(`[${clientId}] Mobile client disconnected`);
+      log(`[${clientId}] Web client disconnected`);
     });
   });
 

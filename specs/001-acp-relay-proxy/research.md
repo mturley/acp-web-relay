@@ -32,7 +32,7 @@
 
 ## Daemon IPC Mechanism
 
-**Decision**: Use Unix domain sockets (macOS/Linux) and Windows named pipes via Node's built-in `net` module. Socket path: `~/.acp-mobile-relay/daemon.sock`.
+**Decision**: Use Unix domain sockets (macOS/Linux) and Windows named pipes via Node's built-in `net` module. Socket path: `~/.acp-web-relay/daemon.sock`.
 
 **Rationale**: Attempting `net.createConnection()` to the socket simultaneously detects whether a daemon is running and establishes the communication channel. Zero dependencies (built-in `net` module). The protocol is newline-delimited JSON-RPC, same as ACP stdio — the subprocess just pipes `process.stdin` to the socket and the socket to `process.stdout`.
 

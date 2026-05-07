@@ -11,9 +11,9 @@ export function log(msg: string): void {
   console.error(`  ${ts}  ${msg}`);
 }
 
-const DAEMON_DIR = join(homedir(), ".acp-mobile-relay");
+const DAEMON_DIR = join(homedir(), ".acp-web-relay");
 const SOCKET_PATH = process.platform === "win32"
-  ? "\\\\.\\pipe\\acp-mobile-relay-daemon"
+  ? "\\\\.\\pipe\\acp-web-relay-daemon"
   : join(DAEMON_DIR, "daemon.sock");
 
 export interface DaemonPipe {
@@ -142,13 +142,13 @@ export async function connectToDaemon(agentCommand: string): Promise<void> {
     socket.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "ENOENT" || err.code === "ECONNREFUSED") {
         console.error(
-          "Error: No acp-mobile-relay daemon is running.\n" +
+          "Error: No acp-web-relay daemon is running.\n" +
             "\n" +
             "Start the relay first:\n" +
-            "  npx acp-mobile-relay serve --port 8765\n" +
+            "  npx acp-web-relay serve --port 8765\n" +
             "\n" +
             "Then configure your editor to use:\n" +
-            `  npx acp-mobile-relay agent '${agentCommand}'`,
+            `  npx acp-web-relay agent '${agentCommand}'`,
         );
         process.exit(1);
       }

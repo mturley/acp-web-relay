@@ -27,7 +27,7 @@ describe("extractGitMeta", () => {
   it("extracts metadata from a valid git repo", async () => {
     const meta = await extractGitMeta(process.cwd());
     expect(meta).not.toBeNull();
-    expect(meta!.repoName).toBe("acp-mobile-relay");
+    expect(meta!.repoName).toBe("acp-web-relay");
     expect(typeof meta!.branch).toBe("string");
   });
 
