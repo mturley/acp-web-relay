@@ -1,18 +1,23 @@
 {
   "name": "acp-web-relay",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "description": "Monitor and control AI agent sessions from any browser.",
+  "files": [
+    "dist/",
+    "ui/session-picker/",
+    "ui/acp-ui-dist/"
+  ],
   "bin": {
     "acp-web-relay": "./dist/cli.js"
   },
   "scripts": {
     "clean": "npm run clean:relay && npm run clean:ui",
     "clean:relay": "rm -rf dist",
-    "clean:ui": "rm -rf ui/acp-ui/dist-web",
+    "clean:ui": "rm -rf ui/acp-ui/dist-web ui/acp-ui-dist",
     "build": "npm run build:relay && npm run build:ui",
     "build:relay": "npm run clean:relay && tsc",
-    "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web",
+    "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web && cp -r dist-web ../acp-ui-dist",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -60,17 +60,17 @@ export async function createHttpServer(
     if (url.startsWith("/ui/") || url === "/ui") {
       const pathPart = url.slice(4).split("?")[0];
       const filePath = pathPart && pathPart !== "/"
-        ? join(uiRoot, "acp-ui", "dist-web", pathPart)
-        : join(uiRoot, "acp-ui", "dist-web", "index.html");
+        ? join(uiRoot, "acp-ui-dist", pathPart)
+        : join(uiRoot, "acp-ui-dist", "index.html");
       return serveFile(res, filePath);
     }
 
     if (url.startsWith("/assets/")) {
-      return serveFile(res, join(uiRoot, "acp-ui", "dist-web", url));
+      return serveFile(res, join(uiRoot, "acp-ui-dist", url));
     }
 
     if (url === "/vite.svg" || url === "/tauri.svg") {
-      return serveFile(res, join(uiRoot, "acp-ui", "dist-web", url));
+      return serveFile(res, join(uiRoot, "acp-ui-dist", url));
     }
 
     res.writeHead(404, { "Content-Type": "text/plain" });
