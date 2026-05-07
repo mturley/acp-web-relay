@@ -68,7 +68,7 @@ The relay prints the local and network URLs. Open the network URL in a browser.
 
 Point your editor at the relay instead of the agent directly. In Zed's `settings.json`:
 
-Using npx (after publishing to npm):
+Using npx:
 
 ```json
 {
@@ -174,4 +174,4 @@ The chat interface is a fork of [ACP UI](https://github.com/formulahendry/acp-ui
 
 ## License
 
-MIT
+[CC0-1.0](LICENSE)
