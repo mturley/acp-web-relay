@@ -31,7 +31,7 @@ A relay proxy that sits between your code editor and any [ACP](https://agentclie
                     └───────────────┘
 ```
 
-The relay runs as a daemon server. Your editor launches `acp-mobile-relay --agent <cmd>` as a subprocess, which connects to the daemon and spawns the agent. The daemon:
+The relay runs as a daemon server. Your editor launches `acp-mobile-relay agent <cmd>` as a subprocess, which connects to the daemon and spawns the agent. The daemon:
 
 1. **Proxies all ACP messages** transparently between editor and agent
 2. **Serves a mobile web UI** with a session picker and chat interface
@@ -55,7 +55,7 @@ Everything stays in sync -- the editor sees what you do on the phone and vice ve
 ### 1. Start the relay
 
 ```bash
-npx acp-mobile-relay --port 8765
+npx acp-mobile-relay serve --port 8765
 ```
 
 The relay prints the local and network URLs. Open the network URL on your phone.
@@ -70,7 +70,7 @@ Point your editor at the relay instead of the agent directly. In Zed's `settings
     "Claude (Mobile)": {
       "type": "custom",
       "command": "npx",
-      "args": ["acp-mobile-relay", "--agent", "npx @agentclientprotocol/claude-agent-acp"]
+      "args": ["acp-mobile-relay", "agent", "npx @agentclientprotocol/claude-agent-acp"]
     }
   }
 }
@@ -99,18 +99,30 @@ Navigate to the network URL on your phone's browser. You'll see the session pick
 
 **Remote access**: Use [Tailscale](https://tailscale.com/), a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or an SSH tunnel to access the relay from anywhere.
 
-## CLI Options
+## Commands
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--agent <cmd>` | | Connect to relay daemon and spawn this agent (editor subprocess mode) |
-| `--port <port>` | `8765` | HTTP/WebSocket server port (server mode) |
-| `--host <addr>` | `0.0.0.0` | Bind address (server mode) |
-| `--version` | | Print version |
-| `--help` | | Print help |
+### `serve`
 
-**Server mode** (no `--agent`): Starts the relay daemon with HTTP/WS server.
-**Connect mode** (`--agent <cmd>`): Connects to a running daemon, spawns the agent, pipes stdio.
+Start the relay daemon server.
+
+```bash
+acp-mobile-relay serve [--port 8765] [--host 0.0.0.0]
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--port <port>` | `8765` | HTTP/WebSocket server port |
+| `--host <addr>` | `0.0.0.0` | Bind address |
+
+### `agent`
+
+Connect to a running relay and spawn an ACP agent. Used as an editor subprocess.
+
+```bash
+acp-mobile-relay agent <command>
+```
+
+Exits with an error if no relay daemon is running.
 
 ## Development
 

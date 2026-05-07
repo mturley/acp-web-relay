@@ -12,7 +12,7 @@
 ### 1. Start the relay
 
 ```bash
-npx acp-mobile-relay --port 8765
+npx acp-mobile-relay serve --port 8765
 ```
 
 The relay prints URLs for local and network access. Keep this running.
@@ -29,7 +29,7 @@ Add the relay as a custom agent. In Zed's `settings.json`:
       "command": "npx",
       "args": [
         "acp-mobile-relay",
-        "--agent", "npx @agentclientprotocol/claude-agent-acp"
+        "agent", "npx @agentclientprotocol/claude-agent-acp"
       ]
     }
   }
@@ -61,7 +61,7 @@ session to view it.
 ## Troubleshooting
 
 **"No acp-mobile-relay daemon is running"?**
-- Start the relay first: `npx acp-mobile-relay --port 8765`
+- Start the relay first: `npx acp-mobile-relay serve --port 8765`
 
 **Can't reach the URL from phone?**
 - Verify phone and computer are on the same WiFi network

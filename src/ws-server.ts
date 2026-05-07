@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server as HttpServer } from "node:http";
 import type { MobileClient, JsonRpcRequest } from "./types.js";
+import { log } from "./daemon.js";
 import {
   parseMessages,
   isRequest,
@@ -49,6 +50,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
       connectedAt: new Date().toISOString(),
     };
     clients.set(clientId, client);
+    log(`[${clientId}] Mobile client connected`);
 
     ws.on("message", (data) => {
       if (typeof data !== "string" && !(data instanceof Buffer)) return;
@@ -143,6 +145,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
 
     ws.on("close", () => {
       clients.delete(clientId);
+      log(`[${clientId}] Mobile client disconnected`);
     });
   });
 

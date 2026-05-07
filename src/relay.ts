@@ -13,8 +13,12 @@ import { PromptQueue } from "./prompt-queue.js";
 import { extractGitMeta } from "./git-meta.js";
 import { createHttpServer, type HttpServerHandle } from "./http-server.js";
 import { createWsServer, type WsServerHandle } from "./ws-server.js";
-import { startDaemonServer, type DaemonServer } from "./daemon.js";
-import type { CliOptions } from "./cli.js";
+import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
+
+export interface RelayOptions {
+  port: number;
+  host: string;
+}
 
 export interface RelayHandle {
   sessionManager: SessionManager;
@@ -25,7 +29,7 @@ export interface RelayHandle {
   shutdown(): Promise<void>;
 }
 
-export async function startRelay(options: CliOptions): Promise<RelayHandle> {
+export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
   const promptQueue = new PromptQueue();
 
@@ -45,7 +49,15 @@ export async function startRelay(options: CliOptions): Promise<RelayHandle> {
 
     const sessionId = extractSessionId(parsed);
 
+    const method = extractMethod(parsed);
+    const hadSession = sessionId ? !!sessionManager.getSession(sessionId) : false;
+
     sessionManager.processMessage(line, direction, parsed, pipeId);
+
+    if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
+      const session = sessionManager.getSession(sessionId)!;
+      log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+    }
 
     if (isResponse(parsed) && sessionId) {
       const session = sessionManager.getSession(sessionId);
@@ -59,7 +71,6 @@ export async function startRelay(options: CliOptions): Promise<RelayHandle> {
     if (direction === "agent→editor") {
       wsHandle.broadcast(line + "\n");
 
-      const method = extractMethod(parsed);
       if (sessionId && method === "session/update") {
         const params = (parsed as any).params;
         if (params?.stopReason === "end_turn" || params?.type === "agent_message_end") {
@@ -95,11 +106,16 @@ export async function startRelay(options: CliOptions): Promise<RelayHandle> {
         sessionId,
         prompt,
       });
+      log(`[${pipe.id}] Mobile prompt → session ${sessionId}`);
+      if (pipe.agentProc?.stdin) {
+        pipe.agentProc.stdin.write(promptReq);
+      }
       pipe.socket.write(promptReq);
       sessionManager.processMessage(
         promptReq.trim(),
         "mobile→agent",
         parseMessage(promptReq.trim())!,
+        pipe.id,
       );
       promptQueue.markBusy(sessionId);
     },
@@ -107,19 +123,23 @@ export async function startRelay(options: CliOptions): Promise<RelayHandle> {
       const pipe = findPipeForSession(sessionId);
       if (!pipe) return;
 
+      log(`[${pipe.id}] Mobile cancel → session ${sessionId}`);
       const cancelNotif = createNotification("session/cancel", { sessionId });
+      if (pipe.agentProc?.stdin) {
+        pipe.agentProc.stdin.write(cancelNotif);
+      }
       pipe.socket.write(cancelNotif);
       sessionManager.processMessage(
         cancelNotif.trim(),
         "mobile→agent",
         parseMessage(cancelNotif.trim())!,
+        pipe.id,
       );
       promptQueue.markIdle(sessionId);
     },
   });
 
   const daemonServer = await startDaemonServer({
-    agentCommand: options.agent,
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
       sessionManager.removeSessionsBySource(pipeId);

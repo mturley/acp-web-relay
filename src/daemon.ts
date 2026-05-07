@@ -2,9 +2,14 @@ import { createServer, connect, type Server, type Socket } from "node:net";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { mkdir, unlink } from "node:fs/promises";
-import { spawnAgent } from "./agent-spawner.js";
 import { createInterface } from "node:readline";
+import { spawnAgent } from "./agent-spawner.js";
 import type { ChildProcess } from "node:child_process";
+
+export function log(msg: string): void {
+  const ts = new Date().toLocaleTimeString();
+  console.error(`  ${ts}  ${msg}`);
+}
 
 const DAEMON_DIR = join(homedir(), ".acp-mobile-relay");
 const SOCKET_PATH = process.platform === "win32"
@@ -25,7 +30,6 @@ export interface DaemonServer {
 }
 
 export interface DaemonServerOptions {
-  agentCommand?: string;
   onMessage: (pipeId: string, line: string, direction: "editor→agent" | "agent→editor") => void;
   onPipeDisconnect: (pipeId: string) => void;
 }
@@ -38,41 +42,55 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
 
   try {
     await unlink(SOCKET_PATH);
-  } catch {
-    // socket file doesn't exist, that's fine
-  }
+  } catch {}
 
   const server = createServer((socket) => {
     const pipeId = `pipe_${++pipeCounter}`;
     let agentProc: ChildProcess | null = null;
+    let initialized = false;
 
-    if (options.agentCommand) {
-      const agent = spawnAgent(options.agentCommand);
-      agentProc = agent.proc;
-
-      const agentRl = createInterface({ input: agent.proc.stdout!, crlfDelay: Infinity });
-      agentRl.on("line", (line) => {
-        options.onMessage(pipeId, line, "agent→editor");
-        socket.write(line + "\n");
-      });
-
-      agent.proc.on("exit", () => {
-        socket.end();
-      });
-    }
+    const pipe: DaemonPipe = { id: pipeId, socket, agentProc: null, sessions: new Set() };
+    pipes.set(pipeId, pipe);
+    log(`[${pipeId}] Editor connected`);
 
     const socketRl = createInterface({ input: socket, crlfDelay: Infinity });
     socketRl.on("line", (line) => {
+      if (!initialized) {
+        initialized = true;
+        const agentCommand = line.trim();
+        if (!agentCommand) {
+          log(`[${pipeId}] No agent command received, closing`);
+          socket.end();
+          return;
+        }
+
+        log(`[${pipeId}] Spawning agent: ${agentCommand}`);
+        const agent = spawnAgent(agentCommand);
+        agentProc = agent.proc;
+        pipe.agentProc = agentProc;
+
+        const agentRl = createInterface({ input: agent.proc.stdout!, crlfDelay: Infinity });
+        agentRl.on("line", (agentLine) => {
+          options.onMessage(pipeId, agentLine, "agent→editor");
+          socket.write(agentLine + "\n");
+        });
+
+        agent.proc.on("exit", (code) => {
+          log(`[${pipeId}] Agent exited (code ${code})`);
+          socket.end();
+        });
+
+        return;
+      }
+
       options.onMessage(pipeId, line, "editor→agent");
       if (agentProc?.stdin) {
         agentProc.stdin.write(line + "\n");
       }
     });
 
-    const pipe: DaemonPipe = { id: pipeId, socket, agentProc, sessions: new Set() };
-    pipes.set(pipeId, pipe);
-
     socket.on("close", () => {
+      log(`[${pipeId}] Editor disconnected`);
       pipes.delete(pipeId);
       if (agentProc && !agentProc.killed) {
         agentProc.kill();
@@ -109,6 +127,8 @@ export async function connectToDaemon(agentCommand: string): Promise<void> {
     const socket = connect(SOCKET_PATH);
 
     socket.on("connect", () => {
+      socket.write(agentCommand + "\n");
+
       process.stdin.pipe(socket);
       socket.pipe(process.stdout);
 
@@ -125,10 +145,10 @@ export async function connectToDaemon(agentCommand: string): Promise<void> {
           "Error: No acp-mobile-relay daemon is running.\n" +
             "\n" +
             "Start the relay first:\n" +
-            "  npx acp-mobile-relay --port 8765\n" +
+            "  npx acp-mobile-relay serve --port 8765\n" +
             "\n" +
             "Then configure your editor to use:\n" +
-            `  npx acp-mobile-relay --agent '${agentCommand}'`,
+            `  npx acp-mobile-relay agent '${agentCommand}'`,
         );
         process.exit(1);
       }
