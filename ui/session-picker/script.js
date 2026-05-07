@@ -123,7 +123,7 @@
         html += `<div class="session-meta">${status} &middot; ${time}</div>`;
         html += `</div>`;
         if (status === "working") {
-          html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" onclick="event.preventDefault();event.stopPropagation();">Cancel</button>`;
+          html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}">Cancel</button>`;
         }
         html += `<div class="session-arrow">&rsaquo;</div>`;
         html += `</a>`;

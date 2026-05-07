@@ -85,7 +85,7 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
     server.listen(SOCKET_PATH, () => resolve());
   });
 
-  console.error(`Daemon listening on ${SOCKET_PATH}`);
+  console.error(`  Daemon socket: ${SOCKET_PATH}`);
 
   return {
     pipes,
@@ -104,12 +104,8 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
   };
 }
 
-export interface DaemonClientResult {
-  connected: boolean;
-}
-
-export async function tryConnectDaemon(): Promise<DaemonClientResult> {
-  return new Promise((resolve) => {
+export async function connectToDaemon(agentCommand: string): Promise<void> {
+  return new Promise((resolve, reject) => {
     const socket = connect(SOCKET_PATH);
 
     socket.on("connect", () => {
@@ -120,11 +116,23 @@ export async function tryConnectDaemon(): Promise<DaemonClientResult> {
         process.exit(0);
       });
 
-      resolve({ connected: true });
+      resolve();
     });
 
-    socket.on("error", () => {
-      resolve({ connected: false });
+    socket.on("error", (err: NodeJS.ErrnoException) => {
+      if (err.code === "ENOENT" || err.code === "ECONNREFUSED") {
+        console.error(
+          "Error: No acp-mobile-relay daemon is running.\n" +
+            "\n" +
+            "Start the relay first:\n" +
+            "  npx acp-mobile-relay --port 8765\n" +
+            "\n" +
+            "Then configure your editor to use:\n" +
+            `  npx acp-mobile-relay --agent '${agentCommand}'`,
+        );
+        process.exit(1);
+      }
+      reject(err);
     });
   });
 }

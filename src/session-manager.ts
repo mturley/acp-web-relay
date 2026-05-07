@@ -79,7 +79,7 @@ export class SessionManager {
     session.updatedAt = message.timestamp;
   }
 
-  processMessage(raw: string, direction: MessageDirection, parsed: JsonRpcMessage): void {
+  processMessage(raw: string, direction: MessageDirection, parsed: JsonRpcMessage, sourceId: string = "default"): void {
     const method = extractMethod(parsed);
     const sessionId = extractSessionId(parsed);
 
@@ -95,7 +95,7 @@ export class SessionManager {
       const cwd = this.pendingNewRequests.get(resp.id) ?? "";
       if (this.pendingNewRequests.has(resp.id)) {
         this.pendingNewRequests.delete(resp.id);
-        this.createSession(sessionId, cwd, "default");
+        this.createSession(sessionId, cwd, sourceId);
       }
     }
 
@@ -116,6 +116,19 @@ export class SessionManager {
     if (method === "session/prompt") {
       session.status = "working";
       session.promptPending = true;
+      if (!session.title && isRequest(parsed)) {
+        const params = parsed.params as Record<string, unknown> | undefined;
+        const prompt = params?.prompt;
+        if (Array.isArray(prompt)) {
+          const textPart = prompt.find(
+            (p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string",
+          );
+          if (textPart) {
+            const text = (textPart as { text: string }).text;
+            session.title = text.length > 60 ? text.slice(0, 60) + "…" : text;
+          }
+        }
+      }
     } else if (method === "session/update" && isRequest(parsed)) {
       const params = parsed.params as Record<string, unknown> | undefined;
       if (params?.stopReason === "end_turn" || params?.type === "agent_message_end") {

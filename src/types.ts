@@ -6,8 +6,7 @@ export type SessionStatus = "idle" | "working" | "waiting";
 export type MessageDirection =
   | "editor→agent"
   | "agent→editor"
-  | "mobile→agent"
-  | "relay→agent";
+  | "mobile→agent";
 
 export interface GitMeta {
   repoName: string;

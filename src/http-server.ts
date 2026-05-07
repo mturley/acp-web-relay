@@ -56,8 +56,11 @@ export async function createHttpServer(
       return serveFile(res, filePath);
     }
 
-    if (url.startsWith("/ui/")) {
-      const filePath = join(uiRoot, "acp-ui", url.slice(4));
+    if (url.startsWith("/ui/") || url === "/ui") {
+      const pathPart = url.slice(4).split("?")[0];
+      const filePath = pathPart && pathPart !== "/"
+        ? join(uiRoot, "acp-ui", pathPart)
+        : join(uiRoot, "acp-ui", "index.html");
       return serveFile(res, filePath);
     }
 
