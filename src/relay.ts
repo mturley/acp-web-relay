@@ -144,6 +144,10 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       broadcastSessionsChanged();
     }
 
+    if (direction === "editor→agent" && isResponse(parsed)) {
+      return;
+    }
+
     wsHandle.broadcast(line + "\n");
   };
 
@@ -215,9 +219,6 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       if (pipe) {
         log(`[${pipe.id}] Web close → session ${sessionId}`);
         const closeNotif = createNotification("session/close", { sessionId });
-        if (pipe.agentProc?.stdin) {
-          pipe.agentProc.stdin.write(closeNotif);
-        }
         pipe.socket.write(closeNotif);
       } else {
         log(`Web close → session ${sessionId} (no pipe)`);
@@ -230,7 +231,12 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       const pipe = findPipeForSession(sessionId);
       if (pipe) {
         log(`[${pipe.id}] Web restore → session ${sessionId}`);
-        const loadReq = createRequest(relayRequestId++, "session/load", { sessionId });
+        const session = sessionManager.getSession(sessionId);
+        const loadReq = createRequest(relayRequestId++, "session/load", {
+          sessionId,
+          cwd: session?.cwd || process.cwd(),
+          mcpServers: {},
+        });
         if (pipe.agentProc?.stdin) {
           pipe.agentProc.stdin.write(loadReq);
         }
