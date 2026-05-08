@@ -39,4 +39,10 @@ echo "Publishing..."
 npm publish
 
 echo ""
-echo "Done! Don't forget to push: git push && git push --tags"
+read -rp "Push commits and tags? [y/N]: " push_choice
+if [[ "$push_choice" =~ ^[Yy]$ ]]; then
+  git push && git push --tags
+  echo "Pushed!"
+else
+  echo "Done! Don't forget to push: git push && git push --tags"
+fi
