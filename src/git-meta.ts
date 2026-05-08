@@ -1,13 +1,17 @@
 import { execFile } from "node:child_process";
 import { basename } from "node:path";
+import { access } from "node:fs/promises";
 import type { GitMeta } from "./types.js";
+
+const GIT_TIMEOUT_MS = 5000;
 
 function exec(command: string, args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile(command, args, { cwd }, (err, stdout) => {
+    const proc = execFile(command, args, { cwd, timeout: GIT_TIMEOUT_MS }, (err, stdout) => {
       if (err) return reject(err);
       resolve(stdout.trim());
     });
+    proc.stderr?.on("data", () => {});
   });
 }
 
@@ -20,6 +24,11 @@ export function parseRepoName(remoteUrl: string | null, fallbackDir: string): st
 }
 
 export async function extractGitMeta(cwd: string): Promise<GitMeta | null> {
+  try {
+    await access(cwd);
+  } catch {
+    return null;
+  }
   try {
     const toplevel = await exec("git", ["rev-parse", "--show-toplevel"], cwd);
     const branch = await exec("git", ["rev-parse", "--abbrev-ref", "HEAD"], cwd);

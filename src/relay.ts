@@ -37,6 +37,15 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const sessionManager = new SessionManager();
   const pendingAgentRequests = new Map<number | string, string>();
   let relayRequestId = 900000;
+  let sessionsChangedTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function broadcastSessionsChanged() {
+    if (sessionsChangedTimer) return;
+    sessionsChangedTimer = setTimeout(() => {
+      sessionsChangedTimer = null;
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+    }, 50);
+  }
 
   if (options.host !== "127.0.0.1" && options.host !== "::1" && options.host !== "localhost") {
     console.error(
@@ -91,20 +100,20 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     }
 
     if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
       log(`[${pipeId}] Session resumed: ${sessionId}`);
       persistArchived();
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     }
 
     if (direction === "editor→agent" && method === "session/close" && sessionId) {
       log(`[${pipeId}] Editor closed session ${sessionId}`);
       sessionManager.archiveSession(sessionId);
       persistArchived();
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     }
 
     if (direction === "editor→agent" && method === "session/prompt" && sessionId) {
@@ -120,7 +129,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
           }
         }
       }
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     }
 
     if (isResponse(parsed)) {
@@ -132,7 +141,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
           }).catch(() => {});
         }
       }
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     }
 
     wsHandle.broadcast(line + "\n");
@@ -182,7 +191,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         parseMessage(promptReq.trim())!,
         pipe.id,
       );
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     },
     onCancel: (sessionId) => {
       const pipe = findPipeForSession(sessionId);
@@ -215,7 +224,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       }
       sessionManager.archiveSession(sessionId);
       persistArchived();
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     },
     onRestore: (sessionId) => {
       const pipe = findPipeForSession(sessionId);
@@ -231,7 +240,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       } else {
         log(`Web restore → session ${sessionId} (no pipe, cannot restore)`);
       }
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     },
     onDelete: (sessionId) => {
       log(`Web delete → session ${sessionId}`);
@@ -239,7 +248,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       deletePersistedSession(sessionId).catch((err) => {
         console.error(`Failed to delete persisted session: ${err.message}`);
       });
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     },
     onResponse: (response) => {
       const parsed = parseMessage(response.trim());
@@ -264,7 +273,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onPipeDisconnect: (pipeId) => {
       sessionManager.archiveSessionsBySource(pipeId);
       persistArchived();
-      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+      broadcastSessionsChanged();
     },
   });
 
@@ -283,6 +292,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   }
 
   async function shutdown(): Promise<void> {
+    if (sessionsChangedTimer) clearTimeout(sessionsChangedTimer);
     wsHandle.stop();
     await daemonServer.stop();
     await httpHandle.stop();

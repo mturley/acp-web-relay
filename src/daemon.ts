@@ -72,11 +72,18 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
         const agentRl = createInterface({ input: agent.proc.stdout!, crlfDelay: Infinity });
         agentRl.on("line", (agentLine) => {
           options.onMessage(pipeId, agentLine, "agent→editor");
-          socket.write(agentLine + "\n");
+          if (!socket.destroyed) {
+            socket.write(agentLine + "\n");
+          }
         });
+        agentRl.on("error", () => {});
+        agentRl.on("close", () => {});
+
+        agent.proc.stderr?.on("data", () => {});
 
         agent.proc.on("exit", (code) => {
           log(`[${pipeId}] Agent exited (code ${code})`);
+          agentRl.close();
           socket.end();
         });
 
@@ -87,6 +94,10 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
       if (agentProc?.stdin) {
         agentProc.stdin.write(line + "\n");
       }
+    });
+
+    socket.on("error", (err) => {
+      log(`[${pipeId}] Socket error: ${err.message}`);
     });
 
     socket.on("close", () => {
