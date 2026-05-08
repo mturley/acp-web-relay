@@ -226,6 +226,16 @@ export class SessionManager {
     }
   }
 
+  resumeSession(sessionId: string, sourceId: string): boolean {
+    const session = this.sessions.get(sessionId);
+    if (session && (session.archived || session.sourceId !== sourceId)) {
+      session.archived = false;
+      session.sourceId = sourceId;
+      return true;
+    }
+    return false;
+  }
+
   setGitMeta(sessionId: string, gitMeta: GitMeta): void {
     const session = this.sessions.get(sessionId);
     if (session) {
