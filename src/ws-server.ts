@@ -29,7 +29,7 @@ export interface WsServerOptions {
 }
 
 export interface WsServerHandle {
-  broadcast(data: string, exclude?: WebSocket): void;
+  broadcast(data: string, exclude?: WebSocket, sessionId?: string): void;
   stop(): void;
 }
 
@@ -64,6 +64,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
       id: clientId,
       ws,
       connectedAt: new Date().toISOString(),
+      sessionId: null,
     };
     clients.set(clientId, client);
     log(`[${clientId}] Web client connected`);
@@ -132,6 +133,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
             }
             continue;
           }
+          client.sessionId = sessionId;
           if (req.id !== undefined) {
             ws.send(createResponse(req.id, { sessionId }));
           }
@@ -205,11 +207,12 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
   }, 25_000);
 
   return {
-    broadcast(data: string, exclude?: WebSocket) {
+    broadcast(data: string, exclude?: WebSocket, sessionId?: string) {
       for (const client of clients.values()) {
-        if (client.ws.readyState === WebSocket.OPEN && client.ws !== exclude) {
-          client.ws.send(data);
-        }
+        if (client.ws.readyState !== WebSocket.OPEN) continue;
+        if (client.ws === exclude) continue;
+        if (sessionId && client.sessionId && client.sessionId !== sessionId) continue;
+        client.ws.send(data);
       }
     },
 

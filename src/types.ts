@@ -50,6 +50,7 @@ export interface WebClient {
   id: string;
   ws: WebSocket;
   connectedAt: string;
+  sessionId: string | null;
 }
 
 export interface JsonRpcRequest {

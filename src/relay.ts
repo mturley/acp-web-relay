@@ -98,7 +98,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       const id = (parsed as any).id;
       if (pendingAgentRequests.has(id)) {
         pendingAgentRequests.delete(id);
-        wsHandle.broadcast(line + "\n");
+        wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
       }
     }
 
@@ -130,7 +130,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
             wsHandle.broadcast(createNotification("session/update", {
               sessionId,
               update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: part.text } },
-            }));
+            }), undefined, sessionId);
           }
         }
       }
@@ -153,7 +153,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       return;
     }
 
-    wsHandle.broadcast(line + "\n");
+    wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
   };
 
   const wsHandle = createWsServer({
@@ -192,7 +192,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
           update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text: echoText } },
         });
         pipe.socket.write(echoNotif);
-        wsHandle.broadcast(echoNotif, senderWs);
+        wsHandle.broadcast(echoNotif, senderWs, sessionId);
       }
 
       sessionManager.processMessage(
