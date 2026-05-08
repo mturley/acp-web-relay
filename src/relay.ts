@@ -20,10 +20,12 @@ import { ensureCert } from "./tls.js";
 import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import type { AuthConfig } from "./auth.js";
 
 export interface RelayOptions {
   port: number;
   host: string;
+  authConfig: AuthConfig;
 }
 
 export interface RelayHandle {
@@ -60,7 +62,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const version: string = require("../package.json").version;
 
   const tls = await ensureCert(join(homedir(), ".acp-web-relay"));
-  const httpHandle = await createHttpServer(options.host, options.port, tls, version);
+  const httpHandle = await createHttpServer(options.host, options.port, tls, version, options.authConfig);
 
   const persisted = await loadPersistedSessions();
   for (const session of persisted) {
@@ -158,6 +160,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const wsHandle = createWsServer({
     httpServer: httpHandle.server,
     sessionManager,
+    authConfig: options.authConfig,
     getLivePipeIds: () => new Set(daemonServer?.pipes.keys() ?? []),
     onPrompt: (sessionId, prompt, requestId, senderWs: WebSocket) => {
       const session = sessionManager.getSession(sessionId);

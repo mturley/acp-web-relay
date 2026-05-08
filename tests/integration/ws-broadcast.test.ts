@@ -4,7 +4,15 @@ import WebSocket from "ws";
 import { createWsServer, type WsServerHandle } from "../../src/ws-server.js";
 import { SessionManager } from "../../src/session-manager.js";
 import { parseMessage } from "../../src/json-rpc.js";
+import { createToken, type AuthConfig } from "../../src/auth.js";
 import * as fixtures from "../fixtures/acp-messages.js";
+
+const TEST_JWT_SECRET = "test-secret-for-integration-tests";
+const testAuthConfig: AuthConfig = {
+  passwordHash: "$2a$10$fakehashfortest",
+  jwtSecret: TEST_JWT_SECRET,
+};
+const testToken = createToken(TEST_JWT_SECRET);
 
 describe("WebSocket broadcast", () => {
   let httpServer: HttpServer;
@@ -24,6 +32,7 @@ describe("WebSocket broadcast", () => {
     wsHandle = createWsServer({
       httpServer,
       sessionManager,
+      authConfig: testAuthConfig,
     });
   });
 
@@ -36,7 +45,9 @@ describe("WebSocket broadcast", () => {
 
   function connectClient(): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, {
+        headers: { cookie: `acp_relay_token=${testToken}` },
+      });
       ws.on("open", () => resolve(ws));
       ws.on("error", reject);
     });

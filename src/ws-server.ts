@@ -13,10 +13,12 @@ import {
   ErrorCodes,
 } from "./json-rpc.js";
 import type { SessionManager } from "./session-manager.js";
+import { verifyToken, parseCookieToken, type AuthConfig } from "./auth.js";
 
 export interface WsServerOptions {
   httpServer: HttpServer;
   sessionManager: SessionManager;
+  authConfig: AuthConfig;
   getLivePipeIds?: () => Set<string>;
   onPrompt?: (sessionId: string, prompt: unknown, requestId: number | string, senderWs: WebSocket) => void;
   onCancel?: (sessionId: string) => void;
@@ -32,7 +34,7 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse } = options;
+  const { httpServer, sessionManager, authConfig, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -43,6 +45,14 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
     handleProtocols: (protocols) => {
       if (protocols.has("acp.v1")) return "acp.v1";
       return false;
+    },
+    verifyClient: (info, callback) => {
+      const cookieToken = parseCookieToken(info.req.headers.cookie);
+      if (!cookieToken || !verifyToken(cookieToken, authConfig.jwtSecret)) {
+        callback(false, 401, "Unauthorized");
+        return;
+      }
+      callback(true);
     },
   });
 

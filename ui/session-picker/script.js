@@ -354,5 +354,12 @@
   document.getElementById("sidebar-toggle").addEventListener("click", toggleSidebar);
   document.getElementById("sidebar-toggle").classList.add("active");
 
+  document.getElementById("logout-btn").addEventListener("click", async function () {
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } catch (e) {}
+    window.location.href = "/login";
+  });
+
   connect();
 })();

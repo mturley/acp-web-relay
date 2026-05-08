@@ -6,6 +6,7 @@
   "files": [
     "dist/",
     "ui/session-picker/",
+    "ui/login/",
     "ui/acp-ui-dist/"
   ],
   "bin": {
@@ -42,11 +43,15 @@
   },
   "homepage": "https://github.com/mturley/acp-web-relay#readme",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "commander": "^14.0.3",
+    "jsonwebtoken": "^9.0.3",
     "selfsigned": "^5.5.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.6.0",
     "@types/ws": "^8.18.1",
     "typescript": "^6.0.3",

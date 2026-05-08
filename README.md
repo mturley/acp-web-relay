@@ -53,7 +53,11 @@ Or from a local clone:
 node dist/cli.js serve --port 8765
 ```
 
-The relay generates a self-signed TLS certificate on first run (stored in `~/.acp-web-relay/`) and serves over HTTPS. It prints the local and network URLs. Open the network URL in a browser.
+On first run, the relay:
+1. Generates a self-signed TLS certificate (stored in `~/.acp-web-relay/`)
+2. Prompts you to set a password for web access
+
+All web clients must log in with this password before they can view or interact with sessions.
 
 > **First visit:** Your browser will show a certificate warning because the cert is self-signed. Accept it once per device and you won't see it again.
 
@@ -106,14 +110,15 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 - **Archive/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
 - **Multi-editor support**: Sessions from all editors appear in one web UI
 - **Responsive web UI**: Works on phones, tablets, and desktops
+- **Password-protected**: Web clients must log in before accessing sessions; safe to expose over a tunnel
 - **HTTPS by default**: Self-signed TLS certificate auto-generated on first run; all browser APIs (like `crypto.randomUUID`) work over the network
 - **No account required**: Everything runs locally, no cloud service involved
 
 ## Network Access
 
-**Same WiFi** (simplest): The relay binds to all interfaces by default and any device on the network can connect.
+**Same WiFi** (simplest): The relay binds to all interfaces by default. Devices on the network can reach the relay but must log in with the password.
 
-**Remote access**: Use [Tailscale](https://tailscale.com/), a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or an SSH tunnel to access the relay from anywhere.
+**Remote access**: Use [Tailscale](https://tailscale.com/), a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or an SSH tunnel to access the relay from anywhere. The password authentication ensures your sessions are protected even over a public tunnel.
 
 ## Commands
 
@@ -122,13 +127,28 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 Start the relay daemon server.
 
 ```bash
-npx acp-web-relay serve [--port 8765] [--host 0.0.0.0]
+npx acp-web-relay serve [--port 8765] [--host 0.0.0.0] [--set-password <password>]
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--port <port>` | `8765` | HTTPS/WebSocket server port |
 | `--host <addr>` | `0.0.0.0` | Bind address |
+| `--set-password <password>` | | Set or update the web access password |
+
+#### Authentication
+
+The relay requires a password for web access. On first run (with no existing password), it prompts you interactively.
+
+To change the password later, use `--set-password`. This invalidates all existing browser sessions.
+
+You can also override the password at runtime with the `ACP_RELAY_PASSWORD` environment variable. When set, the relay accepts this password instead of the stored one (the stored password is not modified):
+
+```bash
+ACP_RELAY_PASSWORD=mysecret npx acp-web-relay serve
+```
+
+Authentication uses JWT tokens stored in secure, HttpOnly cookies with a 7-day expiry. Both HTTP requests and WebSocket connections are protected. The login page and a logout button in the session picker header are provided.
 
 ### `agent`
 
