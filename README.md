@@ -33,11 +33,13 @@ Everything stays in sync -- the editor sees what you do on the phone and vice ve
 
 Starting an agent session in Zed with the relay:
 
-![Selecting the relay agent in Zed](docs/screenshot-1-zed-selector.png)
+![Initializing an agent session in Zed](docs/screenshot-1-zed-init.png)
 
-| Zed chat | Mobile session picker, grouped by repo and branch | Mobile chat |
-|:-:|:-:|:-:|
-| ![Chat session in Zed](docs/screenshot-2-zed-chat.png) | ![Session picker on mobile](docs/screenshot-3-mobile-selector.png) | ![Chat session on mobile](docs/screenshot-4-mobile-chat.png) |
+![Chat session in Zed](docs/screenshot-2-zed-chat.png)
+
+| Mobile session picker | Mobile chat |
+|:-:|:-:|
+| ![Session picker on mobile](docs/screenshot-3-mobile-selector.png) | ![Chat session on mobile](docs/screenshot-4-mobile-chat.png) |
 
 ## Setup
 
