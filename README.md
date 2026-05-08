@@ -4,6 +4,8 @@ Monitor and control AI agent sessions from any browser.
 
 A relay proxy that sits between your code editor and any [ACP](https://agentclientprotocol.com/)-compatible agent (Claude Code, Gemini CLI, Codex, etc.), exposing a web interface over the network.
 
+> **Warning:** This project is in early development and is not well tested. Use at your own risk. Expect breaking changes, bugs, and rough edges.
+
 ## Screenshots
 
 Starting an agent session in Zed with the relay:
