@@ -6,16 +6,6 @@ A relay proxy that sits between your code editor and any [ACP](https://agentclie
 
 > **Warning:** This project is in early development and is not well tested. Use at your own risk. Expect breaking changes, bugs, and rough edges.
 
-## Screenshots
-
-Starting an agent session in Zed with the relay:
-
-![Selecting the relay agent in Zed](docs/screenshot-1-zed-selector.png)
-
-| Zed chat | Mobile session picker, grouped by repo and branch | Mobile chat |
-|:-:|:-:|:-:|
-| ![Chat session in Zed](docs/screenshot-2-zed-chat.png) | ![Session picker on mobile](docs/screenshot-3-mobile-selector.png) | ![Chat session on mobile](docs/screenshot-4-mobile-chat.png) |
-
 ## How It Works
 
 ![Architecture diagram](docs/architecture.svg)
@@ -38,6 +28,16 @@ You're working with an AI coding agent in your editor. You step away from your d
 - Check on multiple sessions across different projects
 
 Everything stays in sync -- the editor sees what you do on the phone and vice versa.
+
+## Screenshots
+
+Starting an agent session in Zed with the relay:
+
+![Selecting the relay agent in Zed](docs/screenshot-1-zed-selector.png)
+
+| Zed chat | Mobile session picker, grouped by repo and branch | Mobile chat |
+|:-:|:-:|:-:|
+| ![Chat session in Zed](docs/screenshot-2-zed-chat.png) | ![Session picker on mobile](docs/screenshot-3-mobile-selector.png) | ![Chat session on mobile](docs/screenshot-4-mobile-chat.png) |
 
 ## Setup
 
