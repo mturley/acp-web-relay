@@ -74,9 +74,8 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
   let daemonServer: DaemonServer;
 
-  function persistArchived() {
-    const archived = sessionManager.getAllSessions().filter((s) => s.archived);
-    persistSessions(archived).catch((err) => {
+  function persistAll() {
+    persistSessions(sessionManager.getAllSessions()).catch((err) => {
       console.error(`Failed to persist sessions: ${err.message}`);
     });
   }
@@ -111,14 +110,14 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
     if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
       log(`[${pipeId}] Session resumed: ${sessionId}`);
-      persistArchived();
+      persistAll();
       broadcastSessionsChanged();
     }
 
     if (direction === "editor→agent" && method === "session/close" && sessionId) {
       log(`[${pipeId}] Editor closed session ${sessionId}`);
       sessionManager.archiveSession(sessionId);
-      persistArchived();
+      persistAll();
       broadcastSessionsChanged();
     }
 
@@ -231,7 +230,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         log(`Web close → session ${sessionId} (no pipe)`);
       }
       sessionManager.archiveSession(sessionId);
-      persistArchived();
+      persistAll();
       broadcastSessionsChanged();
     },
     onRestore: (sessionId) => {
@@ -249,7 +248,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         }
         pipe.socket.write(loadReq);
         sessionManager.unarchiveSession(sessionId);
-        persistArchived();
+        persistAll();
       } else {
         log(`Web restore → session ${sessionId} (no pipe, cannot restore)`);
       }
@@ -285,7 +284,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
       sessionManager.archiveSessionsBySource(pipeId);
-      persistArchived();
+      persistAll();
       broadcastSessionsChanged();
     },
   });
@@ -306,6 +305,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
   async function shutdown(): Promise<void> {
     if (sessionsChangedTimer) clearTimeout(sessionsChangedTimer);
+    await persistSessions(sessionManager.getAllSessions());
     wsHandle.stop();
     await daemonServer.stop();
     await httpHandle.stop();

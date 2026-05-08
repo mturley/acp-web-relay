@@ -169,6 +169,11 @@ export class SessionManager {
     }
 
     if (sessionId) {
+      if (!this.sessions.has(sessionId)) {
+        const params = (parsed as { params?: Record<string, unknown> }).params;
+        const cwd = (params?.cwd as string) || "";
+        this.createSession(sessionId, cwd, sourceId);
+      }
       this.bufferMessage(sessionId, raw, direction, parsed);
       this.updateStatus(sessionId, method, parsed);
     }

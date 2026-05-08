@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { createRequire } from "node:module";
-import { createInterface } from "node:readline";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { Command } from "commander";
@@ -93,7 +92,6 @@ program
 
 async function promptPassword(): Promise<string> {
   return new Promise((resolve) => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
     const stdin = process.stdin;
     const output = process.stderr;
 
@@ -102,8 +100,9 @@ async function promptPassword(): Promise<string> {
     if (stdin.isTTY) {
       stdin.setRawMode(true);
     }
+    stdin.resume();
 
-    process.stderr.write("Enter a password for web access: ");
+    output.write("Enter a password for web access: ");
 
     const onData = (char: Buffer) => {
       const key = char.toString("utf-8");
@@ -112,9 +111,9 @@ async function promptPassword(): Promise<string> {
         if (stdin.isTTY) {
           stdin.setRawMode(false);
         }
+        stdin.pause();
         output.write("\n");
         stdin.removeListener("data", onData);
-        rl.close();
         resolve(password);
       } else if (key === "\x03") {
         if (stdin.isTTY) {
