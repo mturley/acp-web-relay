@@ -141,7 +141,7 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 Start the relay daemon server.
 
 ```bash
-acp-web-relay serve [--port 8765] [--host 0.0.0.0]
+npx acp-web-relay serve [--port 8765] [--host 0.0.0.0]
 ```
 
 | Option | Default | Description |
@@ -154,10 +154,20 @@ acp-web-relay serve [--port 8765] [--host 0.0.0.0]
 Connect to a running relay and spawn an ACP agent. Used as an editor subprocess.
 
 ```bash
-acp-web-relay agent <command>
+npx acp-web-relay agent <command>
 ```
 
 Exits with an error if no relay daemon is running.
+
+### `cleanup`
+
+Delete the `~/.acp-web-relay/` directory (TLS certificates, session data, daemon socket).
+
+```bash
+npx acp-web-relay cleanup
+```
+
+Useful for regenerating the TLS certificate or resetting all state.
 
 ## Development
 

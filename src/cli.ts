@@ -31,6 +31,18 @@ program
     await connectToDaemon(cmd);
   });
 
+program
+  .command("cleanup")
+  .description("Delete the ~/.acp-web-relay directory (TLS certs, sessions, socket)")
+  .action(async () => {
+    const { join } = await import("node:path");
+    const { homedir } = await import("node:os");
+    const { rm } = await import("node:fs/promises");
+    const dir = join(homedir(), ".acp-web-relay");
+    await rm(dir, { recursive: true, force: true });
+    console.error(`Deleted ${dir}`);
+  });
+
 program.parse(process.argv);
 
 if (!program.args.length) {
