@@ -21,7 +21,8 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "start": "node dist/cli.js serve --port 8765"
+    "start": "node dist/cli.js serve --port 8765",
+    "build:start": "npm run build && npm run start"
   },
   "repository": {
     "type": "git",
