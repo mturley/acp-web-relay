@@ -9,7 +9,7 @@
     "ui/acp-ui-dist/"
   ],
   "bin": {
-    "acp-web-relay": "./dist/cli.js"
+    "acp-web-relay": "dist/cli.js"
   },
   "scripts": {
     "clean": "npm run clean:relay && npm run clean:ui",
