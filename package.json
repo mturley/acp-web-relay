@@ -42,6 +42,7 @@
   "homepage": "https://github.com/mturley/acp-web-relay#readme",
   "dependencies": {
     "commander": "^14.0.3",
+    "selfsigned": "^5.5.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {

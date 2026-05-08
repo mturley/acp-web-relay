@@ -62,7 +62,9 @@ Or from a local clone:
 node dist/cli.js serve --port 8765
 ```
 
-The relay prints the local and network URLs. Open the network URL in a browser.
+The relay generates a self-signed TLS certificate on first run (stored in `~/.acp-web-relay/`) and serves over HTTPS. It prints the local and network URLs. Open the network URL in a browser.
+
+> **First visit:** Your browser will show a certificate warning because the cert is self-signed. Accept it once per device and you won't see it again.
 
 ### 2. Configure your editor
 
@@ -113,6 +115,7 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 - **Archive/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
 - **Multi-editor support**: Sessions from all editors appear in one web UI
 - **Responsive web UI**: Works on phones, tablets, and desktops
+- **HTTPS by default**: Self-signed TLS certificate auto-generated on first run; all browser APIs (like `crypto.randomUUID`) work over the network
 - **No account required**: Everything runs locally, no cloud service involved
 
 ## Network Access
@@ -133,7 +136,7 @@ acp-web-relay serve [--port 8765] [--host 0.0.0.0]
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--port <port>` | `8765` | HTTP/WebSocket server port |
+| `--port <port>` | `8765` | HTTPS/WebSocket server port |
 | `--host <addr>` | `0.0.0.0` | Bind address |
 
 ### `agent`

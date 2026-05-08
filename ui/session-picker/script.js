@@ -176,6 +176,10 @@
     frame.style.display = "block";
     frame.src = `/ui/?agent=Relay&session=${encodeURIComponent(sessionId)}&hideSidebar=true`;
 
+    if (sidebarOpen && window.matchMedia("(max-width: 700px)").matches) {
+      toggleSidebar();
+    }
+
     render();
   }
 

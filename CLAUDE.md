@@ -37,6 +37,9 @@ The chat interface is a fork of ACP UI at `ui/acp-ui/` (submodule pointing to [m
 
 ## Architecture Notes
 
+### TLS
+The relay serves over HTTPS with a self-signed certificate. On first run, `src/tls.ts` generates a cert using the `selfsigned` package and stores `cert.pem` and `key.pem` in `~/.acp-web-relay/`. Subsequent starts reuse the existing cert. This ensures the browser treats the page as a secure context, which is required for APIs like `crypto.randomUUID()` used by both the session picker and ACP UI.
+
 ### Daemon Protocol
 The daemon listens on a Unix socket (`~/.acp-web-relay/daemon.sock`). When an editor subprocess connects, it sends the agent command as the **first line** over the socket. The daemon spawns the agent and pipes all subsequent data bidirectionally. The daemon owns the agent process.
 
@@ -58,7 +61,7 @@ Agent-originated JSON-RPC requests (like `session/request_permission`) are track
 
 ### ACP UI Integration
 The session picker pre-populates two localStorage keys before loading ACP UI in the iframe:
-- `acp-ui:agents` — `{ agents: { "Relay": { transport: "websocket", url: "ws://..." } } }`
+- `acp-ui:agents` — `{ agents: { "Relay": { transport: "websocket", url: "wss://..." } } }`
 - `acp-ui:sessions.json` — `{ sessions: [{ id, agentName: "Relay", sessionId, title, cwd, supportsLoadSession: true, ... }] }`
 
 The iframe URL includes `?agent=Relay&session=<id>&hideSidebar=true`.

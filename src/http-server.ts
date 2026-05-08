@@ -1,4 +1,5 @@
-import { createServer, type Server as HttpServer } from "node:http";
+import { createServer, type Server as HttpsServer } from "node:https";
+import type { TlsFiles } from "./tls.js";
 import { readFile } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,16 +24,16 @@ function getLocalNetworkUrl(host: string, port: number): string {
       if (!addrs) continue;
       for (const addr of addrs) {
         if (addr.family === "IPv4" && !addr.internal) {
-          return `http://${addr.address}:${port}`;
+          return `https://${addr.address}:${port}`;
         }
       }
     }
   }
-  return `http://${host}:${port}`;
+  return `https://${host}:${port}`;
 }
 
 export interface HttpServerHandle {
-  server: HttpServer;
+  server: HttpsServer;
   url: string;
   localUrl: string;
   stop(): Promise<void>;
@@ -41,10 +42,11 @@ export interface HttpServerHandle {
 export async function createHttpServer(
   host: string,
   port: number,
+  tls: TlsFiles,
 ): Promise<HttpServerHandle> {
   const uiRoot = join(__dirname, "..", "ui");
 
-  const server = createServer(async (req, res) => {
+  const server = createServer(tls, async (req, res) => {
     const url = req.url ?? "/";
     const pathname = url.split("?")[0];
 
@@ -77,7 +79,7 @@ export async function createHttpServer(
     res.end("Not Found");
   });
 
-  const localUrl = `http://${host === "0.0.0.0" ? "localhost" : host}:${port}`;
+  const localUrl = `https://${host === "0.0.0.0" ? "localhost" : host}:${port}`;
   const networkUrl = getLocalNetworkUrl(host, port);
 
   await new Promise<void>((resolve, reject) => {

@@ -16,6 +16,9 @@ import { createWsServer, type WsServerHandle } from "./ws-server.js";
 import type { WebSocket } from "ws";
 import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
 import { loadPersistedSessions, persistSessions, deletePersistedSession } from "./session-persistence.js";
+import { ensureCert } from "./tls.js";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export interface RelayOptions {
   port: number;
@@ -43,7 +46,8 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     );
   }
 
-  const httpHandle = await createHttpServer(options.host, options.port);
+  const tls = await ensureCert(join(homedir(), ".acp-web-relay"));
+  const httpHandle = await createHttpServer(options.host, options.port, tls);
 
   const persisted = await loadPersistedSessions();
   for (const session of persisted) {
@@ -87,6 +91,12 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+      wsHandle.broadcast(createNotification("relay/sessions_changed"));
+    }
+
+    if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
+      log(`[${pipeId}] Session resumed: ${sessionId}`);
+      persistArchived();
       wsHandle.broadcast(createNotification("relay/sessions_changed"));
     }
 
