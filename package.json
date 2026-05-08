@@ -16,7 +16,7 @@
     "clean:relay": "rm -rf dist",
     "clean:ui": "rm -rf ui/acp-ui/dist-web ui/acp-ui-dist",
     "build": "npm run build:relay && npm run build:ui",
-    "build:relay": "npm run clean:relay && tsc",
+    "build:relay": "npm run clean:relay && tsc && chmod +x dist/cli.js",
     "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web && cp -r dist-web ../acp-ui-dist",
     "dev": "tsc --watch",
     "test": "vitest run",
