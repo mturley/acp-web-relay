@@ -43,6 +43,7 @@ export async function createHttpServer(
   host: string,
   port: number,
   tls: TlsFiles,
+  version: string,
 ): Promise<HttpServerHandle> {
   const uiRoot = join(__dirname, "..", "ui");
 
@@ -91,7 +92,7 @@ export async function createHttpServer(
     server.listen(port, host, () => resolve());
   });
 
-  console.error(`\n  acp-web-relay running:`);
+  console.error(`\n  acp-web-relay v${version} running:`);
   console.error(`    Local:   ${localUrl}`);
   if (networkUrl !== localUrl) {
     console.error(`    Network: ${networkUrl}`);

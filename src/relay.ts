@@ -18,6 +18,7 @@ import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
 import { loadPersistedSessions, persistSessions, deletePersistedSession } from "./session-persistence.js";
 import { ensureCert } from "./tls.js";
 import { homedir } from "node:os";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
 export interface RelayOptions {
@@ -55,8 +56,11 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     );
   }
 
+  const require = createRequire(import.meta.url);
+  const version: string = require("../package.json").version;
+
   const tls = await ensureCert(join(homedir(), ".acp-web-relay"));
-  const httpHandle = await createHttpServer(options.host, options.port, tls);
+  const httpHandle = await createHttpServer(options.host, options.port, tls, version);
 
   const persisted = await loadPersistedSessions();
   for (const session of persisted) {
