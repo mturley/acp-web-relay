@@ -50,6 +50,10 @@ export async function createHttpServer(
     const url = req.url ?? "/";
     const pathname = url.split("?")[0];
 
+    if (pathname === "/favicon.ico" || pathname === "/favicon.svg") {
+      return serveFile(res, join(uiRoot, "favicon.svg"));
+    }
+
     if (pathname === "/" || pathname === "/index.html") {
       return serveFile(res, join(uiRoot, "session-picker", "index.html"));
     }
