@@ -18,28 +18,7 @@ Starting an agent session in Zed with the relay:
 
 ## How It Works
 
-```
-                    ┌───────────────┐
-                    │  acp-web-     │
-                    │    relay      │
-                    │   (daemon)    │
-                    │               │
-┌──────────┐  IPC   │  ┌─────────┐  │  stdio  ┌──────────────────┐
-│  Editor  │◄──────►│  │ Agent   │◄─┼────────►│   ACP Agent      │
-│ (Zed,    │        │  │ Pipe    │  │         │ (Claude Code,    │
-│  IDEA,   │        │  └─────────┘  │         │  Gemini CLI,     │
-│  etc.)   │        │               │         │  Codex, etc.)    │
-└──────────┘        │  ┌─────────┐  │         └──────────────────┘
-                    │  │ Web UI  │  │
-                    │  └────┬────┘  │
-                    └───────┼───────┘
-                            │
-                       WebSocket
-                            │
-                    ┌───────┴───────┐
-                    │    Browser    │
-                    └───────────────┘
-```
+![Architecture diagram](docs/architecture.svg)
 
 The relay runs as a daemon server. Your editor launches `acp-web-relay agent <cmd>` as a subprocess, which connects to the daemon and spawns the agent. The daemon:
 
