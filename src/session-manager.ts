@@ -202,6 +202,15 @@ export class SessionManager {
     } else if (method === "session/cancel") {
       session.status = "idle";
       session.promptPending = false;
+    } else if (method === "session/update" && !session.title) {
+      const params = (parsed as { params?: Record<string, unknown> }).params;
+      const update = params?.update as Record<string, unknown> | undefined;
+      if (update?.sessionUpdate === "user_message_chunk") {
+        const content = update.content as { type?: string; text?: string } | undefined;
+        if (content?.type === "text" && content.text) {
+          session.title = content.text.length > 60 ? content.text.slice(0, 60) + "…" : content.text;
+        }
+      }
     }
   }
 
