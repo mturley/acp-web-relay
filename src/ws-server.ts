@@ -26,6 +26,7 @@ export interface WsServerOptions {
   onRestore?: (sessionId: string) => void;
   onDelete?: (sessionId: string) => void;
   onResponse?: (response: string) => void;
+  tryRestoreFromArchive?: (sessionId: string) => Promise<import("./types.js").RelaySession | null>;
 }
 
 export interface WsServerHandle {
@@ -34,7 +35,7 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, authConfig, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse } = options;
+  const { httpServer, sessionManager, authConfig, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse, tryRestoreFromArchive: tryRestore } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -126,21 +127,36 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
             }
             continue;
           }
-          const session = sessionManager.getSession(sessionId);
-          if (!session) {
-            if (req.id !== undefined) {
-              ws.send(createErrorResponse(req.id, ErrorCodes.SESSION_NOT_FOUND, "Session not found"));
+          const reqId = req.id;
+          (async () => {
+            let session = sessionManager.getSession(sessionId);
+            if (!session && tryRestore) {
+              const restored = await tryRestore(sessionId);
+              if (restored) {
+                sessionManager.addSession(restored);
+                session = restored;
+              }
             }
-            continue;
-          }
-          client.sessionId = sessionId;
-          if (req.id !== undefined) {
-            ws.send(createResponse(req.id, { sessionId }));
-          }
-          const buffered = sessionManager.getBufferedMessages(sessionId);
-          for (const msg of buffered) {
-            ws.send(msg.raw + "\n");
-          }
+            if (!session) {
+              if (reqId !== undefined) {
+                ws.send(createErrorResponse(reqId, ErrorCodes.SESSION_NOT_FOUND, "Session not found"));
+              }
+              return;
+            }
+            client.sessionId = sessionId;
+            if (reqId !== undefined) {
+              ws.send(createResponse(reqId, { sessionId }));
+            }
+            const buffered = sessionManager.getBufferedMessages(sessionId);
+            for (const msg of buffered) {
+              ws.send(msg.raw + "\n");
+            }
+          })().catch((err) => {
+            log(`Error loading session ${sessionId}: ${err.message}`);
+            if (reqId !== undefined) {
+              ws.send(createErrorResponse(reqId, ErrorCodes.SESSION_NOT_FOUND, "Session not found"));
+            }
+          });
           continue;
         }
 

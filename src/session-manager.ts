@@ -8,6 +8,8 @@ import type {
 } from "./types.js";
 import { isRequest, isResponse, extractMethod, extractSessionId } from "./json-rpc.js";
 
+const MAX_MESSAGES = parseInt(process.env.ACP_RELAY_MAX_MESSAGES ?? "2000", 10);
+
 export class SessionManager {
   private sessions = new Map<string, RelaySession>();
   private messageCounter = new Map<string, number>();
@@ -32,7 +34,7 @@ export class SessionManager {
       updatedAt: now,
       promptPending: false,
       lastPrompt: null,
-      archived: false,
+      hidden: false,
       sourceId,
     };
     this.sessions.set(sessionId, session);
@@ -68,12 +70,15 @@ export class SessionManager {
     this.messageCounter.delete(sessionId);
   }
 
-  archiveSessionsBySource(sourceId: string): void {
+  hideSessionsBySource(sourceId: string): RelaySession[] {
+    const affected: RelaySession[] = [];
     for (const session of this.sessions.values()) {
       if (session.sourceId === sourceId) {
-        session.archived = true;
+        session.hidden = true;
+        affected.push(session);
       }
     }
+    return affected;
   }
 
   bufferMessage(
@@ -127,6 +132,9 @@ export class SessionManager {
       method,
       sessionId: extractSessionId(parsed),
     });
+    if (session.messages.length > MAX_MESSAGES) {
+      session.messages = session.messages.slice(-Math.floor(MAX_MESSAGES * 0.8));
+    }
     session.updatedAt = now;
   }
 
@@ -226,24 +234,24 @@ export class SessionManager {
     return null;
   }
 
-  archiveSession(sessionId: string): void {
+  hideSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.archived = true;
+      session.hidden = true;
     }
   }
 
-  unarchiveSession(sessionId: string): void {
+  unhideSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.archived = false;
+      session.hidden = false;
     }
   }
 
   resumeSession(sessionId: string, sourceId: string): boolean {
     const session = this.sessions.get(sessionId);
-    if (session && (session.archived || session.sourceId !== sourceId)) {
-      session.archived = false;
+    if (session && (session.hidden || session.sourceId !== sourceId)) {
+      session.hidden = false;
       session.sourceId = sourceId;
       return true;
     }
@@ -263,7 +271,7 @@ export class SessionManager {
     title: string | null;
     lastPrompt: string | null;
     updatedAt: string;
-    archived: boolean;
+    hidden: boolean;
     pipeAlive: boolean;
     _meta: { relay: { status: SessionStatus; git: GitMeta | null } };
   }> {
@@ -273,7 +281,7 @@ export class SessionManager {
       title: s.title,
       lastPrompt: s.lastPrompt,
       updatedAt: s.updatedAt,
-      archived: s.archived,
+      hidden: s.hidden,
       pipeAlive: livePipeIds ? livePipeIds.has(s.sourceId) : true,
       _meta: {
         relay: {

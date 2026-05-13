@@ -84,8 +84,8 @@ to view it.
 - [ ] Editor sees web prompts echoed as `[Web prompt: ...]`
 - [ ] Both browser and editor see the agent's response
 - [ ] Cancelling from the browser stops the agent
-- [ ] Archiving a session moves it to the collapsed archived section
-- [ ] Restoring an archived session moves it back to active
+- [ ] Hiding a session moves it to the collapsed hidden section
+- [ ] Restoring a hidden session moves it back to active
 
 ## Troubleshooting
 

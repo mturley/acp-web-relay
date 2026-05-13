@@ -15,7 +15,15 @@ import { createHttpServer, type HttpServerHandle } from "./http-server.js";
 import { createWsServer, type WsServerHandle } from "./ws-server.js";
 import type { WebSocket } from "ws";
 import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
-import { loadPersistedSessions, persistSessions, deletePersistedSession } from "./session-persistence.js";
+import {
+  migrateFromLegacyFile,
+  loadActiveSessions,
+  persistSession,
+  persistAllSessions,
+  deletePersistedSession,
+  archiveOldSessions,
+  tryRestoreFromArchive,
+} from "./session-persistence.js";
 import { ensureCert } from "./tls.js";
 import { homedir } from "node:os";
 import { createRequire } from "node:module";
@@ -64,7 +72,19 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const tls = await ensureCert(join(homedir(), ".acp-web-relay"));
   const httpHandle = await createHttpServer(options.host, options.port, tls, version, options.authConfig);
 
-  const persisted = await loadPersistedSessions();
+  const migrated = await migrateFromLegacyFile();
+  if (migrated > 0) {
+    log(`Migrated ${migrated} session(s) from legacy sessions.json`);
+  }
+
+  const maxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_AFTER_DAYS ?? "7", 10);
+  const hiddenMaxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_HIDDEN_AFTER_DAYS ?? "1", 10);
+  const archiveResult = await archiveOldSessions(undefined, maxAgeDays, hiddenMaxAgeDays);
+  if (archiveResult.archived.length > 0) {
+    log(`Archived ${archiveResult.archived.length} old session(s)`);
+  }
+
+  const persisted = await loadActiveSessions();
   for (const session of persisted) {
     sessionManager.addSession(session);
   }
@@ -74,21 +94,35 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
   let daemonServer: DaemonServer;
 
-  function persistAll() {
-    persistSessions(sessionManager.getAllSessions()).catch((err) => {
-      console.error(`Failed to persist sessions: ${err.message}`);
+  function persistOne(sessionId: string) {
+    const session = sessionManager.getSession(sessionId);
+    if (!session) return;
+    persistSession(session).catch((err: any) => {
+      console.error(`Failed to persist session ${sessionId}: ${err.message}`);
     });
   }
 
+  const pipeQueues = new Map<string, Promise<void>>();
+
   const observer = (pipeId: string, line: string, direction: "editor→agent" | "agent→editor") => {
-    const parsed = parseMessage(line);
-    if (!parsed) return;
+    const work = async () => {
+      const parsed = parseMessage(line);
+      if (!parsed) return;
 
-    const sessionId = extractSessionId(parsed);
-    const method = extractMethod(parsed);
-    const hadSession = sessionId ? !!sessionManager.getSession(sessionId) : false;
+      const sessionId = extractSessionId(parsed);
 
-    sessionManager.processMessage(line, direction, parsed, pipeId);
+      if (sessionId && !sessionManager.getSession(sessionId)) {
+        const restored = await tryRestoreFromArchive(sessionId);
+        if (restored) {
+          sessionManager.addSession(restored);
+          log(`[${pipeId}] Restored session from archive: ${sessionId}`);
+        }
+      }
+
+      const method = extractMethod(parsed);
+      const hadSession = sessionId ? !!sessionManager.getSession(sessionId) : false;
+
+      sessionManager.processMessage(line, direction, parsed, pipeId);
 
     if (direction === "agent→editor" && isRequest(parsed) && (parsed as any).id !== undefined) {
       pendingAgentRequests.set((parsed as any).id, pipeId);
@@ -105,19 +139,20 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
       const session = sessionManager.getSession(sessionId)!;
       log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+      persistOne(sessionId);
       broadcastSessionsChanged();
     }
 
     if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
       log(`[${pipeId}] Session resumed: ${sessionId}`);
-      persistAll();
+      persistOne(sessionId);
       broadcastSessionsChanged();
     }
 
     if (direction === "editor→agent" && method === "session/close" && sessionId) {
       log(`[${pipeId}] Editor closed session ${sessionId}`);
-      sessionManager.archiveSession(sessionId);
-      persistAll();
+      sessionManager.hideSession(sessionId);
+      persistOne(sessionId);
       broadcastSessionsChanged();
     }
 
@@ -154,6 +189,9 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     }
 
     wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
+    };
+    const queue = (pipeQueues.get(pipeId) ?? Promise.resolve()).then(work, work);
+    pipeQueues.set(pipeId, queue);
   };
 
   const wsHandle = createWsServer({
@@ -229,8 +267,8 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
       } else {
         log(`Web close → session ${sessionId} (no pipe)`);
       }
-      sessionManager.archiveSession(sessionId);
-      persistAll();
+      sessionManager.hideSession(sessionId);
+      persistOne(sessionId);
       broadcastSessionsChanged();
     },
     onRestore: (sessionId) => {
@@ -247,8 +285,8 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
           pipe.agentProc.stdin.write(loadReq);
         }
         pipe.socket.write(loadReq);
-        sessionManager.unarchiveSession(sessionId);
-        persistAll();
+        sessionManager.unhideSession(sessionId);
+        persistOne(sessionId);
       } else {
         log(`Web restore → session ${sessionId} (no pipe, cannot restore)`);
       }
@@ -261,6 +299,9 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         console.error(`Failed to delete persisted session: ${err.message}`);
       });
       broadcastSessionsChanged();
+    },
+    tryRestoreFromArchive: async (sessionId) => {
+      return tryRestoreFromArchive(sessionId);
     },
     onResponse: (response) => {
       const parsed = parseMessage(response.trim());
@@ -283,8 +324,12 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   daemonServer = await startDaemonServer({
     onMessage: observer,
     onPipeDisconnect: (pipeId) => {
-      sessionManager.archiveSessionsBySource(pipeId);
-      persistAll();
+      const affected = sessionManager.hideSessionsBySource(pipeId);
+      for (const session of affected) {
+        persistSession(session).catch((err: any) => {
+          console.error(`Failed to persist session ${session.sessionId}: ${err.message}`);
+        });
+      }
       broadcastSessionsChanged();
     },
   });
@@ -305,7 +350,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
   async function shutdown(): Promise<void> {
     if (sessionsChangedTimer) clearTimeout(sessionsChangedTimer);
-    await persistSessions(sessionManager.getAllSessions());
+    await persistAllSessions(sessionManager.getAllSessions());
     wsHandle.stop();
     await daemonServer.stop();
     await httpHandle.stop();

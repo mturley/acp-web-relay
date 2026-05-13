@@ -7,7 +7,7 @@ import WebSocket from "ws";
 import { createWsServer, type WsServerHandle } from "../../src/ws-server.js";
 import { SessionManager } from "../../src/session-manager.js";
 import { parseMessage } from "../../src/json-rpc.js";
-import { persistSessions, loadPersistedSessions } from "../../src/session-persistence.js";
+import { persistSession, loadActiveSessions } from "../../src/session-persistence.js";
 import { createToken, type AuthConfig } from "../../src/auth.js";
 import type { RelaySession } from "../../src/types.js";
 
@@ -31,7 +31,7 @@ function makeSession(id: string, cwd: string, sourceId = "pipe_1"): RelaySession
     updatedAt: now,
     promptPending: false,
     lastPrompt: null,
-    archived: false,
+    hidden: false,
     sourceId,
   };
 }
@@ -59,7 +59,7 @@ describe("Session lifecycle integrity", () => {
       authConfig: testAuthConfig,
       getLivePipeIds: () => new Set(["pipe_1"]),
       onRestore: (sessionId) => {
-        sessionManager.unarchiveSession(sessionId);
+        sessionManager.unhideSession(sessionId);
       },
     });
   });
@@ -144,10 +144,12 @@ describe("Session lifecycle integrity", () => {
     const parsed = parseMessage(updateMsg)!;
     sessionManager.bufferMessage("sess_survive", updateMsg, "agent→editor", parsed);
 
-    await persistSessions(sessionManager.getAllSessions(), tempDir);
+    for (const s of sessionManager.getAllSessions()) {
+      await persistSession(s, tempDir);
+    }
 
     const newManager = new SessionManager();
-    const loaded = await loadPersistedSessions(tempDir);
+    const loaded = await loadActiveSessions(tempDir);
     for (const s of loaded) {
       newManager.addSession(s);
     }
@@ -164,9 +166,9 @@ describe("Session lifecycle integrity", () => {
     expect(rawParsed.params.update.content.text).toBe("Persisted message");
   });
 
-  it("archived session appears in list with archived flag", async () => {
-    sessionManager.createSession("sess_archived", tempDir, "pipe_1");
-    sessionManager.archiveSession("sess_archived");
+  it("hidden session appears in list with hidden flag", async () => {
+    sessionManager.createSession("sess_hidden", tempDir, "pipe_1");
+    sessionManager.hideSession("sess_hidden");
 
     const client = await connectClient();
     await initializeClient(client);
@@ -179,8 +181,8 @@ describe("Session lifecycle integrity", () => {
     const sessions = response.result.sessions;
 
     expect(sessions).toHaveLength(1);
-    expect(sessions[0].archived).toBe(true);
-    expect(sessions[0].sessionId).toBe("sess_archived");
+    expect(sessions[0].hidden).toBe(true);
+    expect(sessions[0].sessionId).toBe("sess_hidden");
 
     client.close();
   });

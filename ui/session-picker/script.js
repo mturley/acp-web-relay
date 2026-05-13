@@ -73,7 +73,7 @@
 
   function updateBadge() {
     const badge = document.getElementById("session-badge");
-    const count = sessions.filter((s) => !s.archived).length;
+    const count = sessions.filter((s) => !s.hidden).length;
     if (count > 0 && !sidebarOpen) {
       badge.textContent = count;
       badge.style.display = "inline-block";
@@ -144,19 +144,19 @@
 
   function updateUrl() {
     const params = new URLSearchParams();
-    if (archivedOpen) params.set("archived", "1");
+    if (hiddenOpen) params.set("hidden", "1");
     const query = params.toString();
     const hash = activeSessionId ? `#${encodeURIComponent(activeSessionId)}` : "";
     const url = location.pathname + (query ? `?${query}` : "") + hash;
     history.replaceState(null, "", url);
   }
 
-  let archivedOpen = new URLSearchParams(location.search).get("archived") === "1";
+  let hiddenOpen = new URLSearchParams(location.search).get("hidden") === "1";
 
   function restoreSessionFromHash() {
     if (activeSessionId) return;
     const hash = decodeURIComponent(location.hash.slice(1));
-    if (hash && sessions.some((s) => s.sessionId === hash && !s.archived)) {
+    if (hash && sessions.some((s) => s.sessionId === hash && !s.hidden)) {
       openSession(hash);
     }
   }
@@ -220,13 +220,13 @@
   function renderSessionCard(s) {
     const status = s._meta?.relay?.status || "idle";
     const isActive = s.sessionId === activeSessionId;
-    const isArchived = s.archived;
+    const isHidden = s.hidden;
     const pipeAlive = s.pipeAlive;
-    const displayStatus = isArchived && !pipeAlive ? "disconnected" : status;
+    const displayStatus = isHidden && !pipeAlive ? "disconnected" : status;
     const title = escapeHtml(s.title || s.sessionId);
     const lastPrompt = s.lastPrompt && s.lastPrompt !== s.title ? escapeHtml(s.lastPrompt) : null;
     const time = formatTime(s.updatedAt);
-    let html = `<div class="session-card${isActive ? " active" : ""}${isArchived ? " archived" : ""}" data-session="${escapeHtml(s.sessionId)}">`;
+    let html = `<div class="session-card${isActive ? " active" : ""}${isHidden ? " hidden" : ""}" data-session="${escapeHtml(s.sessionId)}">`;
     html += `<div class="session-status ${displayStatus}"></div>`;
     html += `<div class="session-info">`;
     html += `<div class="session-title">${title}</div>`;
@@ -236,7 +236,7 @@
     html += `<div class="session-meta">${displayStatus} &middot; ${time}</div>`;
     html += `</div>`;
     html += `<div class="session-actions">`;
-    if (isArchived) {
+    if (isHidden) {
       if (pipeAlive) {
         html += `<button class="restore-btn" data-restore="${escapeHtml(s.sessionId)}" title="Restore session">&#x21A9;</button>`;
       }
@@ -255,10 +255,10 @@
   function render() {
     const container = document.getElementById("sessions-container");
 
-    const activeSessions = sessions.filter((s) => !s.archived);
-    const archivedSessions = sessions.filter((s) => s.archived);
+    const activeSessions = sessions.filter((s) => !s.hidden);
+    const hiddenSessions = sessions.filter((s) => s.hidden);
 
-    if (activeSessions.length === 0 && archivedSessions.length === 0) {
+    if (activeSessions.length === 0 && hiddenSessions.length === 0) {
       container.innerHTML = '<div class="empty-state"><p>No active sessions</p><p class="hint">Start an agent session in your editor to see it here.</p></div>';
       return;
     }
@@ -279,10 +279,10 @@
       html += `<div class="empty-state"><p>No active sessions</p></div>`;
     }
 
-    if (archivedSessions.length > 0) {
-      html += `<details class="archived-section"${archivedOpen ? " open" : ""}>`;
-      html += `<summary class="archived-header">Archived (${archivedSessions.length})</summary>`;
-      const groups = groupSessions(archivedSessions);
+    if (hiddenSessions.length > 0) {
+      html += `<details class="hidden-section"${hiddenOpen ? " open" : ""}>`;
+      html += `<summary class="hidden-header">Hidden (${hiddenSessions.length})</summary>`;
+      const groups = groupSessions(hiddenSessions);
       for (const [groupName, groupSessions] of Object.entries(groups)) {
         html += `<div class="group">`;
         html += `<div class="group-header">${escapeHtml(groupName)}</div>`;
@@ -296,10 +296,10 @@
 
     container.innerHTML = html;
 
-    const details = container.querySelector(".archived-section");
+    const details = container.querySelector(".hidden-section");
     if (details) {
       details.addEventListener("toggle", () => {
-        archivedOpen = details.open;
+        hiddenOpen = details.open;
         updateUrl();
       });
     }

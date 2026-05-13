@@ -30,7 +30,7 @@ function makeSession(id: string, cwd: string, sourceId = "pipe_1"): RelaySession
     updatedAt: now,
     promptPending: false,
     lastPrompt: null,
-    archived: false,
+    hidden: false,
     sourceId,
   };
 }
@@ -73,7 +73,7 @@ describe("Session restoration via WebSocket", () => {
         deletedSessions.push(sessionId);
       },
       onRestore: (sessionId) => {
-        sessionManager.unarchiveSession(sessionId);
+        sessionManager.unhideSession(sessionId);
       },
     });
   });
@@ -246,12 +246,12 @@ describe("Session restoration via WebSocket", () => {
     client.close();
   });
 
-  it("shows archived sessions in list after archiveSessionsBySource", async () => {
+  it("shows hidden sessions in list after hideSessionsBySource", async () => {
     sessionManager.createSession("sess_arch1", tempDir, "pipe_dead");
     sessionManager.createSession("sess_arch2", tempDir, "pipe_dead");
     sessionManager.createSession("sess_alive", tempDir, "pipe_1");
 
-    sessionManager.archiveSessionsBySource("pipe_dead");
+    sessionManager.hideSessionsBySource("pipe_dead");
 
     const client = await connectClient();
     await initializeClient(client);
@@ -263,10 +263,10 @@ describe("Session restoration via WebSocket", () => {
     const response = await msgPromise;
     const sessions = response.result.sessions;
 
-    const archived = sessions.filter((s: any) => s.archived);
-    const active = sessions.filter((s: any) => !s.archived);
+    const hidden = sessions.filter((s: any) => s.hidden);
+    const active = sessions.filter((s: any) => !s.hidden);
 
-    expect(archived).toHaveLength(2);
+    expect(hidden).toHaveLength(2);
     expect(active).toHaveLength(1);
     expect(active[0].sessionId).toBe("sess_alive");
 
