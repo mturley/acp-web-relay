@@ -10,10 +10,7 @@ const pkg = require("../package.json");
 
 const program = new Command();
 
-program
-  .name("acp-web-relay")
-  .description("Transparent ACP relay proxy with web UI")
-  .version(pkg.version);
+program.name("acp-web-relay").description("Transparent ACP relay proxy with web UI").version(pkg.version);
 
 program
   .command("serve")
@@ -45,11 +42,7 @@ program
         authConfig = { passwordHash, jwtSecret };
         const { writeFile, mkdir } = await import("node:fs/promises");
         await mkdir(dir, { recursive: true });
-        await writeFile(
-          join(dir, "auth.json"),
-          JSON.stringify({ passwordHash: "", jwtSecret }, null, 2),
-          "utf-8",
-        );
+        await writeFile(join(dir, "auth.json"), JSON.stringify({ passwordHash: "", jwtSecret }, null, 2), "utf-8");
       }
       console.error("  Using password from ACP_RELAY_PASSWORD environment variable.");
     } else {

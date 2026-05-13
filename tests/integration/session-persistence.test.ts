@@ -100,9 +100,7 @@ describe("Per-session file persistence", () => {
   });
 
   it("serializes concurrent writes to the same session", async () => {
-    const writes = Array.from({ length: 10 }, (_, i) =>
-      persistSession(makeSession("s1", `/tmp/test-${i}`), tempDir),
-    );
+    const writes = Array.from({ length: 10 }, (_, i) => persistSession(makeSession("s1", `/tmp/test-${i}`), tempDir));
     await Promise.all(writes);
 
     const loaded = await loadActiveSessions(tempDir);
@@ -110,9 +108,7 @@ describe("Per-session file persistence", () => {
   });
 
   it("allows concurrent writes to different sessions", async () => {
-    const writes = Array.from({ length: 5 }, (_, i) =>
-      persistSession(makeSession(`s${i}`), tempDir),
-    );
+    const writes = Array.from({ length: 5 }, (_, i) => persistSession(makeSession(`s${i}`), tempDir));
     await Promise.all(writes);
 
     const loaded = await loadActiveSessions(tempDir);
@@ -179,14 +175,8 @@ describe("Automatic archival", () => {
   it("archives hidden sessions more aggressively", async () => {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
 
-    await persistSession(
-      makeSession("hidden_old", "/tmp", { updatedAt: twoDaysAgo, hidden: true }),
-      tempDir,
-    );
-    await persistSession(
-      makeSession("active_same_age", "/tmp", { updatedAt: twoDaysAgo }),
-      tempDir,
-    );
+    await persistSession(makeSession("hidden_old", "/tmp", { updatedAt: twoDaysAgo, hidden: true }), tempDir);
+    await persistSession(makeSession("active_same_age", "/tmp", { updatedAt: twoDaysAgo }), tempDir);
 
     const result = await archiveOldSessions(tempDir, 7, 1);
     expect(result.archived).toEqual(["hidden_old"]);

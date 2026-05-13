@@ -81,7 +81,9 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         "\n  in the sessions/ subdirectory. Your old sessions will not be loaded." +
         `\n  To remove this warning, delete ${join(baseDir, "sessions.json")}\n`,
     );
-  } catch {}
+  } catch {
+    /* no legacy file, expected */
+  }
 
   const maxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_AFTER_DAYS ?? "7", 10);
   const hiddenMaxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_HIDDEN_AFTER_DAYS ?? "1", 10);
@@ -98,6 +100,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     log(`Loaded ${persisted.length} persisted session(s)`);
   }
 
+  // eslint-disable-next-line prefer-const
   let daemonServer: DaemonServer;
 
   function persistOne(sessionId: string) {
@@ -130,71 +133,77 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
       sessionManager.processMessage(line, direction, parsed, pipeId);
 
-    if (direction === "agent→editor" && isRequest(parsed) && (parsed as any).id !== undefined) {
-      pendingAgentRequests.set((parsed as any).id, pipeId);
-    }
-
-    if (direction === "editor→agent" && isResponse(parsed)) {
-      const id = (parsed as any).id;
-      if (pendingAgentRequests.has(id)) {
-        pendingAgentRequests.delete(id);
-        wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
+      if (direction === "agent→editor" && isRequest(parsed) && (parsed as any).id !== undefined) {
+        pendingAgentRequests.set((parsed as any).id, pipeId);
       }
-    }
 
-    if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
-      const session = sessionManager.getSession(sessionId)!;
-      log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
-      persistOne(sessionId);
-      broadcastSessionsChanged();
-    }
+      if (direction === "editor→agent" && isResponse(parsed)) {
+        const id = (parsed as any).id;
+        if (pendingAgentRequests.has(id)) {
+          pendingAgentRequests.delete(id);
+          wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
+        }
+      }
 
-    if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
-      log(`[${pipeId}] Session resumed: ${sessionId}`);
-      persistOne(sessionId);
-      broadcastSessionsChanged();
-    }
+      if (sessionId && !hadSession && sessionManager.getSession(sessionId)) {
+        const session = sessionManager.getSession(sessionId)!;
+        log(`[${pipeId}] Session created: ${sessionId} (cwd: ${session.cwd || "unknown"})`);
+        persistOne(sessionId);
+        broadcastSessionsChanged();
+      }
 
-    if (direction === "editor→agent" && method === "session/close" && sessionId) {
-      log(`[${pipeId}] Editor closed session ${sessionId}`);
-      sessionManager.hideSession(sessionId);
-      persistOne(sessionId);
-      broadcastSessionsChanged();
-    }
+      if (sessionId && hadSession && sessionManager.resumeSession(sessionId, pipeId)) {
+        log(`[${pipeId}] Session resumed: ${sessionId}`);
+        persistOne(sessionId);
+        broadcastSessionsChanged();
+      }
 
-    if (direction === "editor→agent" && method === "session/prompt" && sessionId) {
-      const params = (parsed as any).params;
-      const prompt = params?.prompt;
-      if (Array.isArray(prompt)) {
-        for (const part of prompt) {
-          if (part?.type === "text" && typeof part.text === "string") {
-            wsHandle.broadcast(createNotification("session/update", {
-              sessionId,
-              update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: part.text } },
-            }), undefined, sessionId);
+      if (direction === "editor→agent" && method === "session/close" && sessionId) {
+        log(`[${pipeId}] Editor closed session ${sessionId}`);
+        sessionManager.hideSession(sessionId);
+        persistOne(sessionId);
+        broadcastSessionsChanged();
+      }
+
+      if (direction === "editor→agent" && method === "session/prompt" && sessionId) {
+        const params = (parsed as any).params;
+        const prompt = params?.prompt;
+        if (Array.isArray(prompt)) {
+          for (const part of prompt) {
+            if (part?.type === "text" && typeof part.text === "string") {
+              wsHandle.broadcast(
+                createNotification("session/update", {
+                  sessionId,
+                  update: { sessionUpdate: "user_message_chunk", content: { type: "text", text: part.text } },
+                }),
+                undefined,
+                sessionId,
+              );
+            }
           }
         }
+        broadcastSessionsChanged();
       }
-      broadcastSessionsChanged();
-    }
 
-    if (isResponse(parsed)) {
-      if (sessionId) {
-        const session = sessionManager.getSession(sessionId);
-        if (session && !session.gitMeta && session.cwd) {
-          extractGitMeta(session.cwd).then((meta) => {
-            if (meta) sessionManager.setGitMeta(sessionId, meta);
-          }).catch(() => {});
+      if (isResponse(parsed)) {
+        if (sessionId) {
+          const session = sessionManager.getSession(sessionId);
+          if (session && !session.gitMeta && session.cwd) {
+            extractGitMeta(session.cwd)
+              .then((meta) => {
+                if (meta) sessionManager.setGitMeta(sessionId, meta);
+              })
+              .catch(() => {});
+          }
         }
+        broadcastSessionsChanged();
       }
-      broadcastSessionsChanged();
-    }
 
-    if (direction === "editor→agent" && isResponse(parsed)) {
-      return;
-    }
+      if (direction === "editor→agent" && isResponse(parsed)) {
+        return;
+      }
 
-    wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
+      wsHandle.broadcast(line + "\n", undefined, sessionId ?? undefined);
     };
     const queue = (pipeQueues.get(pipeId) ?? Promise.resolve()).then(work, work);
     pipeQueues.set(pipeId, queue);
@@ -208,9 +217,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     onPrompt: (sessionId, prompt, requestId, senderWs: WebSocket) => {
       const session = sessionManager.getSession(sessionId);
       if (!session) {
-        wsHandle.broadcast(
-          createErrorResponse(requestId as number, ErrorCodes.SESSION_NOT_FOUND, "Session not found"),
-        );
+        wsHandle.broadcast(createErrorResponse(requestId, ErrorCodes.SESSION_NOT_FOUND, "Session not found"));
         return;
       }
 
@@ -219,7 +226,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
       log(`[${pipe.id}] Web prompt → session ${sessionId}`);
 
-      const promptReq = createRequest(requestId as number, "session/prompt", {
+      const promptReq = createRequest(requestId, "session/prompt", {
         sessionId,
         prompt,
       });
@@ -239,12 +246,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         wsHandle.broadcast(echoNotif, senderWs, sessionId);
       }
 
-      sessionManager.processMessage(
-        promptReq.trim(),
-        "web→agent",
-        parseMessage(promptReq.trim())!,
-        pipe.id,
-      );
+      sessionManager.processMessage(promptReq.trim(), "web→agent", parseMessage(promptReq.trim())!, pipe.id);
       broadcastSessionsChanged();
     },
     onCancel: (sessionId) => {
@@ -257,12 +259,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
         pipe.agentProc.stdin.write(cancelNotif);
       }
       pipe.socket.write(cancelNotif);
-      sessionManager.processMessage(
-        cancelNotif.trim(),
-        "web→agent",
-        parseMessage(cancelNotif.trim())!,
-        pipe.id,
-      );
+      sessionManager.processMessage(cancelNotif.trim(), "web→agent", parseMessage(cancelNotif.trim())!, pipe.id);
     },
     onClose: (sessionId) => {
       const pipe = findPipeForSession(sessionId);
@@ -342,9 +339,7 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
 
   function extractPromptText(prompt: unknown): string | null {
     if (!Array.isArray(prompt)) return null;
-    const textPart = prompt.find(
-      (p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string",
-    );
+    const textPart = prompt.find((p: any) => typeof p === "object" && p.type === "text" && typeof p.text === "string");
     return textPart ? (textPart as { text: string }).text : null;
   }
 
@@ -362,8 +357,8 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
     await httpHandle.stop();
   }
 
-  process.on("SIGINT", () => shutdown().then(() => process.exit(0)));
-  process.on("SIGTERM", () => shutdown().then(() => process.exit(0)));
+  process.on("SIGINT", () => void shutdown().then(() => process.exit(0)));
+  process.on("SIGTERM", () => void shutdown().then(() => process.exit(0)));
 
   return { sessionManager, httpHandle, wsHandle, daemonServer, shutdown };
 }

@@ -11,9 +11,7 @@ export interface AgentProcess {
 export function spawnAgent(command: string): AgentProcess {
   const parts = command.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ?? [command];
   const cmd = parts[0];
-  const args = parts.slice(1).map((a) =>
-    a.replace(/^["']|["']$/g, ""),
-  );
+  const args = parts.slice(1).map((a) => a.replace(/^["']|["']$/g, ""));
 
   const proc = spawn(cmd, args, {
     stdio: ["pipe", "pipe", "inherit"],

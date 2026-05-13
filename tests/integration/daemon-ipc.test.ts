@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { createServer, type Server } from "node:net";
+import { createServer } from "node:net";
 import { connect } from "node:net";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdtemp, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 
 describe("daemon IPC", () => {
   let tempDir: string;

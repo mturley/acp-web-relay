@@ -132,9 +132,16 @@ describe("WebSocket broadcast", () => {
 
     const messages: any[] = [];
     client.on("message", (data) => {
-      const lines = data.toString().split("\n").filter((l: string) => l.trim());
+      const lines = data
+        .toString()
+        .split("\n")
+        .filter((l: string) => l.trim());
       for (const line of lines) {
-        try { messages.push(JSON.parse(line)); } catch {}
+        try {
+          messages.push(JSON.parse(line));
+        } catch {
+          /* ignore parse errors */
+        }
       }
     });
 

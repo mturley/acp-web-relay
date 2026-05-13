@@ -22,7 +22,8 @@ interface PersistedSessionData extends RelaySession {
 const writeChains = new Map<string, Promise<void>>();
 
 function parseSessionFile(data: any): RelaySession {
-  const { version: _v, ...rest } = data;
+  const rest = { ...data };
+  delete rest.version;
   return rest as RelaySession;
 }
 

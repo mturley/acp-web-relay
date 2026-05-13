@@ -1,4 +1,6 @@
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -18,7 +20,8 @@
   --sidebar-width: 300px;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
@@ -98,8 +101,12 @@ header h1 {
   flex-shrink: 0;
 }
 
-.status-dot.connected { background: var(--idle); }
-.status-dot.disconnected { background: var(--error); }
+.status-dot.connected {
+  background: var(--idle);
+}
+.status-dot.disconnected {
+  background: var(--error);
+}
 
 .header-right {
   display: flex;
@@ -115,7 +122,9 @@ header h1 {
   padding: 4px 10px;
   font-size: 12px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .logout-btn:hover {
@@ -215,14 +224,28 @@ header h1 {
   flex-shrink: 0;
 }
 
-.session-status.idle { background: var(--idle); }
-.session-status.working { background: var(--working); animation: pulse 1.5s ease-in-out infinite; }
-.session-status.waiting { background: var(--waiting); }
-.session-status.disconnected { background: var(--text-muted); }
+.session-status.idle {
+  background: var(--idle);
+}
+.session-status.working {
+  background: var(--working);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.session-status.waiting {
+  background: var(--waiting);
+}
+.session-status.disconnected {
+  background: var(--text-muted);
+}
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .session-info {
@@ -262,7 +285,10 @@ header h1 {
   flex-shrink: 0;
 }
 
-.cancel-btn, .close-btn, .restore-btn, .delete-btn {
+.cancel-btn,
+.close-btn,
+.restore-btn,
+.delete-btn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -270,7 +296,9 @@ header h1 {
   padding: 2px 6px;
   font-size: 11px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .cancel-btn:hover {

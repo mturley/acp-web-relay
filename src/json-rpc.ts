@@ -1,9 +1,4 @@
-import type {
-  JsonRpcMessage,
-  JsonRpcRequest,
-  JsonRpcResponse,
-  JsonRpcError,
-} from "./types.js";
+import type { JsonRpcMessage, JsonRpcRequest, JsonRpcResponse, JsonRpcError } from "./types.js";
 
 export function parseMessages(chunk: string): JsonRpcMessage[] {
   const lines = chunk.split("\n").filter((line) => line.trim().length > 0);
@@ -45,55 +40,35 @@ export function extractMethod(msg: JsonRpcMessage): string | null {
 
 export function extractSessionId(msg: JsonRpcMessage): string | null {
   if (isRequest(msg) && msg.params && typeof msg.params === "object") {
-    const params = msg.params as Record<string, unknown>;
+    const params = msg.params;
     if (typeof params.sessionId === "string") return params.sessionId;
   }
-  if (
-    isResponse(msg) &&
-    msg.result &&
-    typeof msg.result === "object" &&
-    msg.result !== null
-  ) {
+  if (isResponse(msg) && msg.result && typeof msg.result === "object" && msg.result !== null) {
     const result = msg.result as Record<string, unknown>;
     if (typeof result.sessionId === "string") return result.sessionId;
   }
   return null;
 }
 
-export function createResponse(
-  id: number | string,
-  result: unknown,
-): string {
+export function createResponse(id: number | string, result: unknown): string {
   const response: JsonRpcResponse = { jsonrpc: "2.0", id, result };
   return JSON.stringify(response) + "\n";
 }
 
-export function createErrorResponse(
-  id: number | string,
-  code: number,
-  message: string,
-  data?: unknown,
-): string {
+export function createErrorResponse(id: number | string, code: number, message: string, data?: unknown): string {
   const error: JsonRpcError = { code, message };
   if (data !== undefined) error.data = data;
   const response: JsonRpcResponse = { jsonrpc: "2.0", id, error };
   return JSON.stringify(response) + "\n";
 }
 
-export function createNotification(
-  method: string,
-  params?: Record<string, unknown>,
-): string {
+export function createNotification(method: string, params?: Record<string, unknown>): string {
   const request: JsonRpcRequest = { jsonrpc: "2.0", method };
   if (params) request.params = params;
   return JSON.stringify(request) + "\n";
 }
 
-export function createRequest(
-  id: number | string,
-  method: string,
-  params?: Record<string, unknown>,
-): string {
+export function createRequest(id: number | string, method: string, params?: Record<string, unknown>): string {
   const request: JsonRpcRequest = { jsonrpc: "2.0", id, method };
   if (params) request.params = params;
   return JSON.stringify(request) + "\n";

@@ -18,10 +18,7 @@ export async function ensureCert(dir: string): Promise<TlsFiles> {
   const keyPath = join(dir, KEY_FILE);
 
   if (existsSync(certPath) && existsSync(keyPath)) {
-    const [cert, key] = await Promise.all([
-      readFile(certPath, "utf-8"),
-      readFile(keyPath, "utf-8"),
-    ]);
+    const [cert, key] = await Promise.all([readFile(certPath, "utf-8"), readFile(keyPath, "utf-8")]);
     return { key, cert };
   }
 
@@ -37,10 +34,7 @@ export async function ensureCert(dir: string): Promise<TlsFiles> {
     notAfterDate,
   });
 
-  await Promise.all([
-    writeFile(certPath, pems.cert, "utf-8"),
-    writeFile(keyPath, pems.private, "utf-8"),
-  ]);
+  await Promise.all([writeFile(certPath, pems.cert, "utf-8"), writeFile(keyPath, pems.private, "utf-8")]);
 
   console.error("  Certificate saved to ~/.acp-web-relay/");
 

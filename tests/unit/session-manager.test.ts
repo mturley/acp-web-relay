@@ -64,7 +64,12 @@ describe("SessionManager", () => {
       manager.createSession("sess_abc123", "/project", "pipe_1");
       const parsed = parseMessage(fixtures.sessionPromptRequest)!;
       manager.bufferMessage("sess_abc123", fixtures.sessionPromptRequest, "editor→agent", parsed);
-      manager.bufferMessage("sess_abc123", fixtures.sessionUpdateNotification, "agent→editor", parseMessage(fixtures.sessionUpdateNotification)!);
+      manager.bufferMessage(
+        "sess_abc123",
+        fixtures.sessionUpdateNotification,
+        "agent→editor",
+        parseMessage(fixtures.sessionUpdateNotification)!,
+      );
 
       const messages = manager.getBufferedMessages("sess_abc123");
       expect(messages[0].id).toBe(1);

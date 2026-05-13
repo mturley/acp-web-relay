@@ -7,8 +7,11 @@ const GIT_TIMEOUT_MS = 5000;
 
 function exec(command: string, args: string[], cwd: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = execFile(command, args, { cwd, timeout: GIT_TIMEOUT_MS }, (err, stdout) => {
-      if (err) return reject(err);
+    const proc = execFile(command, args, { cwd, timeout: GIT_TIMEOUT_MS }, (error, stdout) => {
+      if (error) {
+        const rejection: Error = error;
+        return reject(rejection);
+      }
       resolve(stdout.trim());
     });
     proc.stderr?.on("data", () => {});

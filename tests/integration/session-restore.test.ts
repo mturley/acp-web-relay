@@ -128,11 +128,16 @@ describe("Session restoration via WebSocket", () => {
     return new Promise((resolve) => {
       const messages: any[] = [];
       const handler = (data: WebSocket.Data) => {
-        const lines = data.toString().split("\n").filter((l: string) => l.trim());
+        const lines = data
+          .toString()
+          .split("\n")
+          .filter((l: string) => l.trim());
         for (const line of lines) {
           try {
             messages.push(JSON.parse(line));
-          } catch {}
+          } catch {
+            /* ignore parse errors */
+          }
         }
       };
       ws.on("message", handler);
@@ -173,14 +178,20 @@ describe("Session restoration via WebSocket", () => {
     const session = makeSession("sess_deleted_cwd", deletedDir);
     sessionManager.addSession(session);
     const parsed = parseMessage(sessionUpdateNotification.replace("sess_restore", "sess_deleted_cwd"))!;
-    sessionManager.bufferMessage("sess_deleted_cwd", sessionUpdateNotification.replace("sess_restore", "sess_deleted_cwd"), "agent→editor", parsed);
+    sessionManager.bufferMessage(
+      "sess_deleted_cwd",
+      sessionUpdateNotification.replace("sess_restore", "sess_deleted_cwd"),
+      "agent→editor",
+      parsed,
+    );
 
     const client = await connectClient();
     await initializeClient(client);
 
     const msgPromise = collectMessages(client);
     client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 11, method: "session/load", params: { sessionId: "sess_deleted_cwd" } }) + "\n",
+      JSON.stringify({ jsonrpc: "2.0", id: 11, method: "session/load", params: { sessionId: "sess_deleted_cwd" } }) +
+        "\n",
     );
     const messages = await msgPromise;
 
@@ -197,7 +208,8 @@ describe("Session restoration via WebSocket", () => {
 
     const msgPromise = waitForMessage(client);
     client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 12, method: "session/load", params: { sessionId: "sess_nonexistent" } }) + "\n",
+      JSON.stringify({ jsonrpc: "2.0", id: 12, method: "session/load", params: { sessionId: "sess_nonexistent" } }) +
+        "\n",
     );
     const response = await msgPromise;
 
@@ -215,7 +227,8 @@ describe("Session restoration via WebSocket", () => {
     await initializeClient(client);
 
     client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 13, method: "session/delete", params: { sessionId: "sess_to_delete" } }) + "\n",
+      JSON.stringify({ jsonrpc: "2.0", id: 13, method: "session/delete", params: { sessionId: "sess_to_delete" } }) +
+        "\n",
     );
     await new Promise((r) => setTimeout(r, 50));
 
@@ -237,9 +250,7 @@ describe("Session restoration via WebSocket", () => {
     expect(deletedSessions).toContain("sess_ghost");
 
     const listPromise = waitForMessage(client);
-    client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 15, method: "session/list", params: {} }) + "\n",
-    );
+    client.send(JSON.stringify({ jsonrpc: "2.0", id: 15, method: "session/list", params: {} }) + "\n");
     const response = await listPromise;
     expect(response.result).toBeDefined();
 
@@ -257,9 +268,7 @@ describe("Session restoration via WebSocket", () => {
     await initializeClient(client);
 
     const msgPromise = waitForMessage(client);
-    client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 16, method: "session/list", params: {} }) + "\n",
-    );
+    client.send(JSON.stringify({ jsonrpc: "2.0", id: 16, method: "session/list", params: {} }) + "\n");
     const response = await msgPromise;
     const sessions = response.result.sessions;
 
@@ -281,9 +290,7 @@ describe("Session restoration via WebSocket", () => {
     await initializeClient(client);
 
     const msgPromise = waitForMessage(client);
-    client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 17, method: "session/list", params: {} }) + "\n",
-    );
+    client.send(JSON.stringify({ jsonrpc: "2.0", id: 17, method: "session/list", params: {} }) + "\n");
     const response = await msgPromise;
     const sessions = response.result.sessions;
 

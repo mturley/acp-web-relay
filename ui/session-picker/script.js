@@ -25,7 +25,9 @@
       for (const line of lines) {
         try {
           handleMessage(JSON.parse(line));
-        } catch (e) {}
+        } catch {
+          /* ignore parse errors */
+        }
       }
     });
 
@@ -106,7 +108,7 @@
     const groups = {};
     for (const s of sessions) {
       const git = s._meta?.relay?.git;
-      const key = git ? `${git.repoName} / ${git.branch}` : (s.cwd || "Unknown");
+      const key = git ? `${git.repoName} / ${git.branch}` : s.cwd || "Unknown";
       if (!groups[key]) groups[key] = [];
       groups[key].push(s);
     }
@@ -122,7 +124,7 @@
 
     const agentConfig = {
       agents: {
-        "Relay": {
+        Relay: {
           transport: "websocket",
           url: wsUrl,
         },
@@ -130,15 +132,17 @@
     };
     localStorage.setItem("acp-ui:agents", JSON.stringify(agentConfig));
 
-    const savedSessions = [{
-      id: crypto.randomUUID(),
-      agentName: "Relay",
-      sessionId: session.sessionId,
-      title: session.title || session.sessionId,
-      lastUpdated: Date.now(),
-      cwd: session.cwd || "/",
-      supportsLoadSession: true,
-    }];
+    const savedSessions = [
+      {
+        id: crypto.randomUUID(),
+        agentName: "Relay",
+        sessionId: session.sessionId,
+        title: session.title || session.sessionId,
+        lastUpdated: Date.now(),
+        cwd: session.cwd || "/",
+        supportsLoadSession: true,
+      },
+    ];
     localStorage.setItem("acp-ui:sessions.json", JSON.stringify({ sessions: savedSessions }));
   }
 
@@ -259,7 +263,8 @@
     const hiddenSessions = sessions.filter((s) => s.hidden);
 
     if (activeSessions.length === 0 && hiddenSessions.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>No active sessions</p><p class="hint">Start an agent session in your editor to see it here.</p></div>';
+      container.innerHTML =
+        '<div class="empty-state"><p>No active sessions</p><p class="hint">Start an agent session in your editor to see it here.</p></div>';
       return;
     }
 
@@ -357,7 +362,9 @@
   document.getElementById("logout-btn").addEventListener("click", async function () {
     try {
       await fetch("/api/logout", { method: "POST" });
-    } catch (e) {}
+    } catch {
+      /* ignore logout errors */
+    }
     window.location.href = "/login";
   });
 

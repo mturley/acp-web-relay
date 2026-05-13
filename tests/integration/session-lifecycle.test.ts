@@ -114,11 +114,16 @@ describe("Session lifecycle integrity", () => {
     return new Promise((resolve) => {
       const messages: any[] = [];
       const handler = (data: WebSocket.Data) => {
-        const lines = data.toString().split("\n").filter((l: string) => l.trim());
+        const lines = data
+          .toString()
+          .split("\n")
+          .filter((l: string) => l.trim());
         for (const line of lines) {
           try {
             messages.push(JSON.parse(line));
-          } catch {}
+          } catch {
+            /* ignore parse errors */
+          }
         }
       };
       ws.on("message", handler);
@@ -174,9 +179,7 @@ describe("Session lifecycle integrity", () => {
     await initializeClient(client);
 
     const msgPromise = waitForMessage(client);
-    client.send(
-      JSON.stringify({ jsonrpc: "2.0", id: 20, method: "session/list", params: {} }) + "\n",
-    );
+    client.send(JSON.stringify({ jsonrpc: "2.0", id: 20, method: "session/list", params: {} }) + "\n");
     const response = await msgPromise;
     const sessions = response.result.sessions;
 
@@ -207,7 +210,8 @@ describe("Session lifecycle integrity", () => {
     await initializeClient(client1);
     await initializeClient(client2);
 
-    const loadReq = JSON.stringify({ jsonrpc: "2.0", id: 21, method: "session/load", params: { sessionId: "sess_multi" } }) + "\n";
+    const loadReq =
+      JSON.stringify({ jsonrpc: "2.0", id: 21, method: "session/load", params: { sessionId: "sess_multi" } }) + "\n";
 
     const p1 = collectMessages(client1);
     const p2 = collectMessages(client2);

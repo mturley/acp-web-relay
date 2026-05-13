@@ -3,10 +3,7 @@ import type { Socket } from "node:net";
 import type { WebSocket } from "ws";
 
 export type SessionStatus = "idle" | "working" | "waiting";
-export type MessageDirection =
-  | "editor→agent"
-  | "agent→editor"
-  | "web→agent";
+export type MessageDirection = "editor→agent" | "agent→editor" | "web→agent";
 
 export interface GitMeta {
   repoName: string;

@@ -1,11 +1,4 @@
-import type {
-  RelaySession,
-  Message,
-  MessageDirection,
-  SessionStatus,
-  GitMeta,
-  JsonRpcMessage,
-} from "./types.js";
+import type { RelaySession, Message, MessageDirection, SessionStatus, GitMeta, JsonRpcMessage } from "./types.js";
 import { isRequest, isResponse, extractMethod, extractSessionId } from "./json-rpc.js";
 
 const MAX_MESSAGES = parseInt(process.env.ACP_RELAY_MAX_MESSAGES ?? "2000", 10);
@@ -16,12 +9,7 @@ export class SessionManager {
   private pendingNewRequests = new Map<number | string, string>();
   private pendingPromptRequests = new Map<number | string, string>();
 
-  createSession(
-    sessionId: string,
-    cwd: string,
-    sourceId: string,
-    gitMeta: GitMeta | null = null,
-  ): RelaySession {
+  createSession(sessionId: string, cwd: string, sourceId: string, gitMeta: GitMeta | null = null): RelaySession {
     const now = new Date().toISOString();
     const session: RelaySession = {
       sessionId,
@@ -81,12 +69,7 @@ export class SessionManager {
     return affected;
   }
 
-  bufferMessage(
-    sessionId: string,
-    raw: string,
-    direction: MessageDirection,
-    parsed: JsonRpcMessage,
-  ): void {
+  bufferMessage(sessionId: string, raw: string, direction: MessageDirection, parsed: JsonRpcMessage): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
@@ -187,11 +170,7 @@ export class SessionManager {
     }
   }
 
-  private updateStatus(
-    sessionId: string,
-    method: string | null,
-    parsed: JsonRpcMessage,
-  ): void {
+  private updateStatus(sessionId: string, method: string | null, parsed: JsonRpcMessage): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 

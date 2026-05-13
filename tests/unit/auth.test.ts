@@ -2,14 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  ensureAuth,
-  verifyPassword,
-  createToken,
-  verifyToken,
-  parseCookieToken,
-  type AuthConfig,
-} from "../../src/auth.js";
+import { ensureAuth, verifyPassword, createToken, verifyToken, parseCookieToken } from "../../src/auth.js";
 
 describe("auth", () => {
   let testDir: string;

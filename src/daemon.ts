@@ -12,9 +12,8 @@ export function log(msg: string): void {
 }
 
 const DAEMON_DIR = join(homedir(), ".acp-web-relay");
-const SOCKET_PATH = process.platform === "win32"
-  ? "\\\\.\\pipe\\acp-web-relay-daemon"
-  : join(DAEMON_DIR, "daemon.sock");
+const SOCKET_PATH =
+  process.platform === "win32" ? "\\\\.\\pipe\\acp-web-relay-daemon" : join(DAEMON_DIR, "daemon.sock");
 
 export interface DaemonPipe {
   id: string;
@@ -42,7 +41,9 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
 
   try {
     await unlink(SOCKET_PATH);
-  } catch {}
+  } catch {
+    /* stale socket file, ignore */
+  }
 
   const server = createServer((socket) => {
     const pipeId = `pipe_${++pipeCounter}`;

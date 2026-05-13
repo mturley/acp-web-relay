@@ -96,11 +96,7 @@ export const invalidJsonRpc = JSON.stringify({
   method: "test",
 });
 
-export const multiLineChunk = [
-  initializeRequest,
-  sessionNewRequest,
-  pingNotification,
-].join("\n");
+export const multiLineChunk = [initializeRequest, sessionNewRequest, pingNotification].join("\n");
 
 export const sessionListRequest = JSON.stringify({
   jsonrpc: "2.0",

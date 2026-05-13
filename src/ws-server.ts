@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server as HttpServer } from "node:http";
-import type { WebClient, JsonRpcRequest } from "./types.js";
+import type { WebClient } from "./types.js";
 import { log } from "./daemon.js";
 import {
   parseMessages,
@@ -35,7 +35,19 @@ export interface WsServerHandle {
 }
 
 export function createWsServer(options: WsServerOptions): WsServerHandle {
-  const { httpServer, sessionManager, authConfig, getLivePipeIds, onPrompt, onCancel, onClose, onRestore, onDelete, onResponse, tryRestoreFromArchive: tryRestore } = options;
+  const {
+    httpServer,
+    sessionManager,
+    authConfig,
+    getLivePipeIds,
+    onPrompt,
+    onCancel,
+    onClose,
+    onRestore,
+    onDelete,
+    onResponse,
+    tryRestoreFromArchive: tryRestore,
+  } = options;
   const clients = new Map<string, WebClient>();
   let clientCounter = 0;
   let pingInterval: ReturnType<typeof setInterval> | null = null;
@@ -82,7 +94,7 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
           }
           continue;
         }
-        const req = msg as JsonRpcRequest;
+        const req = msg;
         const method = extractMethod(req);
 
         if (method === "$/ping") continue;
@@ -97,14 +109,16 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
         if (method === "initialize") {
           initialized = true;
           if (req.id !== undefined) {
-            ws.send(createResponse(req.id, {
-              protocolVersion: 1,
-              agentInfo: { name: "acp-web-relay", version: "1.0.0" },
-              capabilities: {
-                loadSession: true,
-                sessionCapabilities: { list: true, resume: true, close: true },
-              },
-            }));
+            ws.send(
+              createResponse(req.id, {
+                protocolVersion: 1,
+                agentInfo: { name: "acp-web-relay", version: "1.0.0" },
+                capabilities: {
+                  loadSession: true,
+                  sessionCapabilities: { list: true, resume: true, close: true },
+                },
+              }),
+            );
           }
           continue;
         }
@@ -112,9 +126,11 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
         if (method === "session/list") {
           if (req.id !== undefined) {
             const livePipeIds = getLivePipeIds ? getLivePipeIds() : undefined;
-            ws.send(createResponse(req.id, {
-              sessions: sessionManager.getSessionList(livePipeIds),
-            }));
+            ws.send(
+              createResponse(req.id, {
+                sessions: sessionManager.getSessionList(livePipeIds),
+              }),
+            );
           }
           continue;
         }

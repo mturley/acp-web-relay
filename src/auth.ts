@@ -9,7 +9,6 @@ const AUTH_FILE = "auth.json";
 const SALT_ROUNDS = 10;
 const TOKEN_EXPIRY = "7d";
 const COOKIE_NAME = "acp_relay_token";
-const COOKIE_MAX_AGE = 604800; // 7 days in seconds
 
 export interface AuthConfig {
   passwordHash: string;
@@ -66,7 +65,7 @@ export function createToken(secret: string): string {
 export function verifyToken(token: string, secret: string): jwt.JwtPayload | null {
   try {
     const payload = jwt.verify(token, secret);
-    if (typeof payload === "object") return payload as jwt.JwtPayload;
+    if (typeof payload === "object") return payload;
     return null;
   } catch {
     return null;
@@ -75,7 +74,10 @@ export function verifyToken(token: string, secret: string): jwt.JwtPayload | nul
 
 export function parseCookieToken(cookieHeader: string | undefined): string | null {
   if (!cookieHeader) return null;
-  const match = cookieHeader.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${COOKIE_NAME}=`));
+  const match = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${COOKIE_NAME}=`));
   return match ? match.slice(COOKIE_NAME.length + 1) : null;
 }
 
