@@ -1,6 +1,6 @@
 {
   "name": "acp-web-relay",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "type": "module",
   "description": "Monitor and control AI agent sessions from any browser.",
   "files": [
@@ -20,6 +20,10 @@
     "build:relay": "npm run clean:relay && tsc && chmod +x dist/cli.js",
     "build:ui": "npm run clean:ui && cd ui/acp-ui && npm install && npm run build:web && cp -r dist-web ../acp-ui-dist",
     "dev": "tsc --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write 'src/**/*.ts' 'tests/**/*.ts' 'ui/session-picker/**/*.{js,css}'",
+    "format:check": "prettier --check 'src/**/*.ts' 'tests/**/*.ts' 'ui/session-picker/**/*.{js,css}'",
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "node dist/cli.js serve --port 8765",
@@ -50,11 +54,17 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.6.0",
     "@types/ws": "^8.18.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
     "vitest": "^4.1.5"
   }
 }
