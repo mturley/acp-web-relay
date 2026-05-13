@@ -16,7 +16,6 @@ import { createWsServer, type WsServerHandle } from "./ws-server.js";
 import type { WebSocket } from "ws";
 import { startDaemonServer, log, type DaemonServer } from "./daemon.js";
 import {
-  migrateFromLegacyFile,
   loadActiveSessions,
   persistSession,
   persistAllSessions,
@@ -25,6 +24,7 @@ import {
   tryRestoreFromArchive,
 } from "./session-persistence.js";
 import { ensureCert } from "./tls.js";
+import { access } from "node:fs/promises";
 import { homedir } from "node:os";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -72,10 +72,16 @@ export async function startRelay(options: RelayOptions): Promise<RelayHandle> {
   const tls = await ensureCert(join(homedir(), ".acp-web-relay"));
   const httpHandle = await createHttpServer(options.host, options.port, tls, version, options.authConfig);
 
-  const migrated = await migrateFromLegacyFile();
-  if (migrated > 0) {
-    log(`Migrated ${migrated} session(s) from legacy sessions.json`);
-  }
+  const baseDir = join(homedir(), ".acp-web-relay");
+  try {
+    await access(join(baseDir, "sessions.json"));
+    console.error(
+      `\n  Warning: Legacy sessions.json found in ${baseDir}.` +
+        "\n  This format is no longer supported — sessions are now stored as individual files" +
+        "\n  in the sessions/ subdirectory. Your old sessions will not be loaded." +
+        `\n  To remove this warning, delete ${join(baseDir, "sessions.json")}\n`,
+    );
+  } catch {}
 
   const maxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_AFTER_DAYS ?? "7", 10);
   const hiddenMaxAgeDays = parseInt(process.env.ACP_RELAY_ARCHIVE_HIDDEN_AFTER_DAYS ?? "1", 10);

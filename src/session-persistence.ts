@@ -19,48 +19,11 @@ interface PersistedSessionData extends RelaySession {
   version: number;
 }
 
-interface LegacyPersistedData {
-  version: number;
-  sessions: any[];
-}
-
 const writeChains = new Map<string, Promise<void>>();
 
-function normalizeSession(data: any): RelaySession {
-  if ("archived" in data && !("hidden" in data)) {
-    const { archived, version: _v, ...rest } = data;
-    return { ...rest, hidden: archived };
-  }
+function parseSessionFile(data: any): RelaySession {
   const { version: _v, ...rest } = data;
   return rest as RelaySession;
-}
-
-export async function migrateFromLegacyFile(baseDir?: string): Promise<number> {
-  const base = baseDir ?? DEFAULT_BASE_DIR;
-  const legacyPath = join(base, "sessions.json");
-  let raw: string;
-  try {
-    raw = await readFile(legacyPath, "utf-8");
-  } catch (err: any) {
-    if (err.code === "ENOENT") return 0;
-    throw err;
-  }
-
-  const data: LegacyPersistedData = JSON.parse(raw);
-  if (data.version !== 1 || !Array.isArray(data.sessions)) return 0;
-
-  const sessionsDir = getSessionsDir(baseDir);
-  await mkdir(sessionsDir, { recursive: true });
-
-  for (const session of data.sessions) {
-    const normalized = normalizeSession(session);
-    const fileData: PersistedSessionData = { version: 2, ...normalized };
-    const filePath = join(sessionsDir, `${normalized.sessionId}.json`);
-    await writeFile(filePath, JSON.stringify(fileData, null, 2), "utf-8");
-  }
-
-  await rename(legacyPath, join(base, "sessions.json.migrated"));
-  return data.sessions.length;
 }
 
 export async function loadActiveSessions(baseDir?: string): Promise<RelaySession[]> {
@@ -80,7 +43,7 @@ export async function loadActiveSessions(baseDir?: string): Promise<RelaySession
       const raw = await readFile(join(sessionsDir, entry), "utf-8");
       const data = JSON.parse(raw);
       if (data.version !== 2) continue;
-      sessions.push(normalizeSession(data));
+      sessions.push(parseSessionFile(data));
     } catch {
       console.error(`Warning: failed to load session file ${entry}, skipping`);
     }
@@ -142,7 +105,7 @@ export async function archiveOldSessions(
       const data = JSON.parse(raw);
       const updatedAt = new Date(data.updatedAt).getTime();
       const ageDays = (now - updatedAt) / (1000 * 60 * 60 * 24);
-      const isHidden = data.hidden ?? data.archived ?? false;
+      const isHidden = data.hidden ?? false;
       const threshold = isHidden ? hiddenMaxAgeDays : maxAgeDays;
       if (ageDays > threshold) {
         await rename(filePath, join(archiveDir, entry));
@@ -172,37 +135,8 @@ export async function tryRestoreFromArchive(sessionId: string, baseDir?: string)
   try {
     const raw = await readFile(activePath, "utf-8");
     const data = JSON.parse(raw);
-    return normalizeSession(data);
+    return parseSessionFile(data);
   } catch {
     return null;
   }
-}
-
-// Legacy compat: kept for tests that still use the old API
-export async function loadPersistedSessions(dir?: string): Promise<RelaySession[]> {
-  const d = dir ?? DEFAULT_BASE_DIR;
-  try {
-    const raw = await readFile(join(d, "sessions.json"), "utf-8");
-    const data: LegacyPersistedData = JSON.parse(raw);
-    if (data.version !== 1 || !Array.isArray(data.sessions)) return [];
-    return data.sessions.map(normalizeSession);
-  } catch (err: any) {
-    if (err.code === "ENOENT") return [];
-    console.error(`Warning: failed to load persisted sessions: ${err.message}`);
-    return [];
-  }
-}
-
-export function persistSessions(sessions: RelaySession[], dir?: string): Promise<void> {
-  const d = dir ?? DEFAULT_BASE_DIR;
-  const key = `legacy:${d}`;
-  const work = async () => {
-    await mkdir(d, { recursive: true });
-    const data: LegacyPersistedData = { version: 1, sessions };
-    await writeFile(join(d, "sessions.json.tmp"), JSON.stringify(data, null, 2), "utf-8");
-    await rename(join(d, "sessions.json.tmp"), join(d, "sessions.json"));
-  };
-  const chain = (writeChains.get(key) ?? Promise.resolve()).then(work, work);
-  writeChains.set(key, chain);
-  return chain;
 }

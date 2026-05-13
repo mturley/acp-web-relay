@@ -1,15 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, readFile, writeFile, access, readdir } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, access, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  loadPersistedSessions,
-  persistSessions,
   loadActiveSessions,
   persistSession,
   persistAllSessions,
   deletePersistedSession,
-  migrateFromLegacyFile,
   archiveOldSessions,
   tryRestoreFromArchive,
   getSessionsDir,
@@ -35,77 +32,6 @@ function makeSession(id: string, cwd = "/tmp/test", overrides: Partial<RelaySess
     ...overrides,
   };
 }
-
-describe("Legacy session persistence (sessions.json)", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "persist-test-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it("round-trips persist and load", async () => {
-    const sessions = [makeSession("s1"), makeSession("s2")];
-    await persistSessions(sessions, tempDir);
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded).toHaveLength(2);
-    expect(loaded[0].sessionId).toBe("s1");
-    expect(loaded[1].sessionId).toBe("s2");
-    expect(loaded[0].title).toBe("Session s1");
-  });
-
-  it("returns empty array when sessions.json does not exist", async () => {
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded).toEqual([]);
-  });
-
-  it("returns empty array for corrupt sessions.json", async () => {
-    await writeFile(join(tempDir, "sessions.json"), "not valid json{{{", "utf-8");
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded).toEqual([]);
-  });
-
-  it("returns empty array for version mismatch", async () => {
-    await writeFile(
-      join(tempDir, "sessions.json"),
-      JSON.stringify({ version: 99, sessions: [makeSession("s1")] }),
-      "utf-8",
-    );
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded).toEqual([]);
-  });
-
-  it("maps archived to hidden on load", async () => {
-    const legacySession = { ...makeSession("s1"), archived: true };
-    delete (legacySession as any).hidden;
-    await writeFile(
-      join(tempDir, "sessions.json"),
-      JSON.stringify({ version: 1, sessions: [legacySession] }),
-      "utf-8",
-    );
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded[0].hidden).toBe(true);
-    expect((loaded[0] as any).archived).toBeUndefined();
-  });
-
-  it("serializes concurrent writes via write chain", async () => {
-    const writes = Array.from({ length: 10 }, (_, i) =>
-      persistSessions([makeSession(`s${i}`)], tempDir),
-    );
-    await Promise.all(writes);
-
-    const loaded = await loadPersistedSessions(tempDir);
-    expect(loaded).toHaveLength(1);
-
-    const raw = await readFile(join(tempDir, "sessions.json"), "utf-8");
-    const data = JSON.parse(raw);
-    expect(data.version).toBe(1);
-    expect(data.sessions).toHaveLength(1);
-  });
-});
 
 describe("Per-session file persistence", () => {
   let tempDir: string;
@@ -217,62 +143,6 @@ describe("Per-session file persistence", () => {
 
     const loaded = await loadActiveSessions(tempDir);
     expect(loaded).toHaveLength(1);
-  });
-});
-
-describe("Migration from legacy sessions.json", () => {
-  let tempDir: string;
-
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "migrate-test-"));
-  });
-
-  afterEach(async () => {
-    await rm(tempDir, { recursive: true, force: true });
-  });
-
-  it("migrates legacy file to per-session files", async () => {
-    const sessions = [makeSession("s1"), makeSession("s2")];
-    await persistSessions(sessions, tempDir);
-
-    const count = await migrateFromLegacyFile(tempDir);
-    expect(count).toBe(2);
-
-    const loaded = await loadActiveSessions(tempDir);
-    expect(loaded).toHaveLength(2);
-
-    let legacyExists = true;
-    try {
-      await access(join(tempDir, "sessions.json"));
-    } catch {
-      legacyExists = false;
-    }
-    expect(legacyExists).toBe(false);
-
-    const migratedPath = join(tempDir, "sessions.json.migrated");
-    const migratedRaw = await readFile(migratedPath, "utf-8");
-    expect(JSON.parse(migratedRaw).version).toBe(1);
-  });
-
-  it("is idempotent (no-op if legacy file does not exist)", async () => {
-    const count = await migrateFromLegacyFile(tempDir);
-    expect(count).toBe(0);
-  });
-
-  it("converts archived to hidden during migration", async () => {
-    const legacySession = { ...makeSession("s1"), archived: true };
-    delete (legacySession as any).hidden;
-    await writeFile(
-      join(tempDir, "sessions.json"),
-      JSON.stringify({ version: 1, sessions: [legacySession] }),
-      "utf-8",
-    );
-
-    await migrateFromLegacyFile(tempDir);
-
-    const loaded = await loadActiveSessions(tempDir);
-    expect(loaded[0].hidden).toBe(true);
-    expect((loaded[0] as any).archived).toBeUndefined();
   });
 });
 

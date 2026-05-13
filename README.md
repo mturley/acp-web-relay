@@ -109,7 +109,8 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 - **Live updates**: Session list, titles, and status update in real time without page reload
 - **Prompt from anywhere**: Send prompts from the browser; the editor sees them echoed as `[Web prompt: ...]`
 - **Cancel from browser**: Stop a running agent operation remotely
-- **Archive/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
+- **Hide/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
+- **Automatic archival**: Old sessions are archived to disk on startup (configurable thresholds) and lazily restored when referenced
 - **Multi-editor support**: Sessions from all editors appear in one web UI
 - **Responsive web UI**: Works on phones, tablets, and desktops
 - **Password-protected**: Web clients must log in before accessing sessions; safe to expose over a tunnel
