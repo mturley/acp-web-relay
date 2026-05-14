@@ -12,7 +12,7 @@ import {
   createNotification,
   ErrorCodes,
 } from "./json-rpc.js";
-import type { SessionManager } from "./session-manager.js";
+import { type SessionManager, REPLAY_LIMIT } from "./session-manager.js";
 import { verifyToken, parseCookieToken, type AuthConfig } from "./auth.js";
 
 export interface WsServerOptions {
@@ -69,15 +69,19 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
     },
   });
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, req) => {
     const clientId = `client_${++clientCounter}`;
     let initialized = false;
+
+    const upgradeUrl = new URL(req.url || "", "http://localhost");
+    const fullReplay = upgradeUrl.searchParams.get("fullReplay") === "1";
 
     const client: WebClient = {
       id: clientId,
       ws,
       connectedAt: new Date().toISOString(),
       sessionId: null,
+      fullReplay,
     };
     clients.set(clientId, client);
     log(`[${clientId}] Web client connected`);
@@ -163,9 +167,33 @@ export function createWsServer(options: WsServerOptions): WsServerHandle {
             if (reqId !== undefined) {
               ws.send(createResponse(reqId, { sessionId }));
             }
-            const buffered = sessionManager.getBufferedMessages(sessionId);
-            for (const msg of buffered) {
-              ws.send(msg.raw + "\n");
+            if (client.fullReplay) {
+              const buffered = sessionManager.getBufferedMessages(sessionId);
+              for (const msg of buffered) {
+                ws.send(msg.raw + "\n");
+              }
+            } else {
+              const { messages: recent, truncated } =
+                sessionManager.getBufferedMessagesSlice(sessionId, REPLAY_LIMIT);
+              if (truncated) {
+                ws.send(JSON.stringify({
+                  jsonrpc: "2.0",
+                  method: "session/update",
+                  params: {
+                    sessionId,
+                    update: {
+                      sessionUpdate: "agent_message_chunk",
+                      content: {
+                        type: "text",
+                        text: "⏩ Showing recent messages only. Older session history was truncated.",
+                      },
+                    },
+                  },
+                }) + "\n");
+              }
+              for (const msg of recent) {
+                ws.send(msg.raw + "\n");
+              }
             }
           })().catch((err) => {
             log(`Error loading session ${sessionId}: ${err.message}`);

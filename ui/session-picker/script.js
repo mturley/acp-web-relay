@@ -118,9 +118,14 @@
     return groups;
   }
 
-  function configureAcpUi(session) {
+  const REPLAY_LIMIT = 200;
+
+  function configureAcpUi(session, options = {}) {
     const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${location.host}/ws`;
+    let wsUrl = `${wsProtocol}//${location.host}/ws`;
+    if (options.fullReplay) {
+      wsUrl += "?fullReplay=1";
+    }
 
     const agentConfig = {
       agents: {
@@ -165,12 +170,12 @@
     }
   }
 
-  function openSession(sessionId) {
+  function openSession(sessionId, options = {}) {
     const session = sessions.find((s) => s.sessionId === sessionId);
     if (!session) return;
 
     activeSessionId = sessionId;
-    configureAcpUi(session);
+    configureAcpUi(session, options);
     updateUrl();
 
     const frame = document.getElementById("session-frame");
@@ -246,6 +251,9 @@
       }
       html += `<button class="delete-btn" data-delete="${escapeHtml(s.sessionId)}" title="Delete session">&times;</button>`;
     } else {
+      if ((s.messageCount || 0) > REPLAY_LIMIT) {
+        html += `<button class="full-replay-btn" data-full-replay="${escapeHtml(s.sessionId)}" title="Load full session history">&#x23EE;</button>`;
+      }
       if (status === "working") {
         html += `<button class="cancel-btn" data-session="${escapeHtml(s.sessionId)}" title="Cancel">&#x23F9;</button>`;
       }
@@ -317,6 +325,14 @@
   }
 
   document.addEventListener("click", (e) => {
+    const fullReplayBtn = e.target.closest(".full-replay-btn");
+    if (fullReplayBtn) {
+      e.stopPropagation();
+      const sessionId = fullReplayBtn.dataset.fullReplay;
+      if (sessionId) openSession(sessionId, { fullReplay: true });
+      return;
+    }
+
     const cancelBtn = e.target.closest(".cancel-btn");
     if (cancelBtn) {
       e.stopPropagation();

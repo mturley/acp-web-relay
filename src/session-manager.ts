@@ -2,6 +2,7 @@ import type { RelaySession, Message, MessageDirection, SessionStatus, GitMeta, J
 import { isRequest, isResponse, extractMethod, extractSessionId } from "./json-rpc.js";
 
 const MAX_MESSAGES = parseInt(process.env.ACP_RELAY_MAX_MESSAGES ?? "2000", 10);
+export const REPLAY_LIMIT = parseInt(process.env.ACP_RELAY_REPLAY_LIMIT ?? "200", 10);
 
 export class SessionManager {
   private sessions = new Map<string, RelaySession>();
@@ -252,6 +253,7 @@ export class SessionManager {
     updatedAt: string;
     hidden: boolean;
     pipeAlive: boolean;
+    messageCount: number;
     _meta: { relay: { status: SessionStatus; git: GitMeta | null } };
   }> {
     return this.getAllSessions().map((s) => ({
@@ -262,6 +264,7 @@ export class SessionManager {
       updatedAt: s.updatedAt,
       hidden: s.hidden,
       pipeAlive: livePipeIds ? livePipeIds.has(s.sourceId) : true,
+      messageCount: s.messages.length,
       _meta: {
         relay: {
           status: s.status,
@@ -273,5 +276,13 @@ export class SessionManager {
 
   getBufferedMessages(sessionId: string): Message[] {
     return this.sessions.get(sessionId)?.messages ?? [];
+  }
+
+  getBufferedMessagesSlice(sessionId: string, limit: number): { messages: Message[]; truncated: boolean } {
+    const all = this.getBufferedMessages(sessionId);
+    if (all.length <= limit) {
+      return { messages: all, truncated: false };
+    }
+    return { messages: all.slice(-limit), truncated: true };
   }
 }

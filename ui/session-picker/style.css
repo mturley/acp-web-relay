@@ -288,7 +288,8 @@ header h1 {
 .cancel-btn,
 .close-btn,
 .restore-btn,
-.delete-btn {
+.delete-btn,
+.full-replay-btn {
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text-muted);
@@ -319,6 +320,11 @@ header h1 {
 .delete-btn:hover {
   border-color: var(--error);
   color: var(--error);
+}
+
+.full-replay-btn:hover {
+  border-color: var(--idle);
+  color: var(--idle);
 }
 
 /* Hidden section */

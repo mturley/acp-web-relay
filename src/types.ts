@@ -48,6 +48,7 @@ export interface WebClient {
   ws: WebSocket;
   connectedAt: string;
   sessionId: string | null;
+  fullReplay: boolean;
 }
 
 export interface JsonRpcRequest {
