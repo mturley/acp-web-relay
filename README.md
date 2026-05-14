@@ -110,6 +110,7 @@ Navigate to the network URL shown when you started the relay. You'll see the ses
 - **Prompt from anywhere**: Send prompts from the browser; the editor sees them echoed as `[Web prompt: ...]`
 - **Cancel from browser**: Stop a running agent operation remotely
 - **Hide/restore**: Hide sessions from the active list and restore them later (persisted across daemon restarts)
+- **Truncated replay**: Opening a session replays only the most recent messages (~200) for fast loading; a "Full replay" button on the session card loads the entire history when needed
 - **Automatic archival**: Old sessions are archived to disk on startup (configurable thresholds) and lazily restored when referenced
 - **Multi-editor support**: Sessions from all editors appear in one web UI
 - **Responsive web UI**: Works on phones, tablets, and desktops

@@ -58,6 +58,7 @@ Agent-originated JSON-RPC requests (like `session/request_permission`) are track
 - `session/prompt` messages are converted to `user_message_chunk` notifications in the buffer so they replay correctly in ACP UI
 - `session/request_permission` messages are NOT buffered to avoid replaying stale permission dialogs
 - End-of-turn is detected from the JSON-RPC response to `session/prompt` (tracked via `pendingPromptRequests`), not from `session/update` notifications
+- **Truncated replay**: By default, `session/load` replays only the last `REPLAY_LIMIT` (200) messages, injecting a synthetic info message at the top when truncated. Full replay is opt-in via `?fullReplay=1` on the WebSocket URL (read from the upgrade request). The session picker passes this param through the localStorage agent config URL when the user clicks "Full replay". Switching sessions resets to truncated replay.
 
 ### ACP UI Integration
 The session picker pre-populates two localStorage keys before loading ACP UI in the iframe:
